@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import { Contract } from "ethers";
+// import { Contract } from "ethers";
 
 /**
  * Deploys a contract named "YourContract" using the deployer account and
@@ -22,7 +22,23 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  await deploy("YourContract", {
+  const poseidon = await deploy("PoseidonT3", {
+    from: deployer,
+    log: true,
+    autoMine: true,
+  });
+
+  const leanIMT = await deploy("LeanIMT", {
+    from: deployer,
+    log: true,
+    autoMine: true,
+    libraries: {
+      // LeanIMT: leanIMT.address,
+      PoseidonT3: poseidon.address,
+    },
+  });
+
+  await deploy("IncrementalMerkleTree", {
     from: deployer,
     // Contract constructor arguments
     args: [deployer],
@@ -30,15 +46,19 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
     autoMine: true,
+    libraries: {
+      LeanIMT: leanIMT.address,
+      PoseidonT3: poseidon.address,
+    },
   });
 
-  // Get the deployed contract to interact with it after deploying.
-  const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
-  console.log("👋 Initial greeting:", await yourContract.greeting());
+  // // Get the deployed contract to interact with it after deploying.
+  // const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
+  // console.log("👋 Initial greeting:", await yourContract.greeting());
 };
 
 export default deployYourContract;
 
 // Tags are useful if you have multiple deploy files and only want to run one of them.
 // e.g. yarn deploy --tags YourContract
-deployYourContract.tags = ["YourContract"];
+deployYourContract.tags = ["IncrementalMerkleTree"];

@@ -3413,6 +3413,7 @@ __metadata:
     "@types/qrcode": ~1.5.5
     "@typescript-eslint/eslint-plugin": ~8.27.0
     "@typescript-eslint/parser": ~8.27.0
+    "@zk-kit/lean-imt.sol": ^2.0.1
     chai: ~4.5.0
     dotenv: ~16.4.5
     envfile: ~7.1.0
@@ -5393,6 +5394,15 @@ __metadata:
     multiformats: ^13.3.1
     uint8arrays: ^5.1.0
   checksum: 547d30007132bbfeaf3c0af608db05f2bda595525a269077d9b19add11e513e7d0290b2cea63db1e33dbf7eb919c99d71d448f83591a27786e3627c8cbf9d10f
+  languageName: node
+  linkType: hard
+
+"@zk-kit/lean-imt.sol@npm:^2.0.1":
+  version: 2.0.1
+  resolution: "@zk-kit/lean-imt.sol@npm:2.0.1"
+  dependencies:
+    poseidon-solidity: 0.0.5
+  checksum: 1ebd5e099e9f010110b2711f755b11ed332d5fe40dac082fce8d726109f7ae888a1a648319eaa6251e18bc02e5c98ab9831c86c03cad835cb7248c334919755f
   languageName: node
   linkType: hard
 
@@ -13756,6 +13766,13 @@ __metadata:
   version: 2.1.11
   resolution: "pony-cause@npm:2.1.11"
   checksum: 4aaa9ddab8f8225b5cbb32f7329a71b73679074579fa91f9e9d6853d398f3c2872de979519e1525c0c91d53afc82c32fddb76e379d19157e69ef1f7064523dfa
+  languageName: node
+  linkType: hard
+
+"poseidon-solidity@npm:0.0.5":
+  version: 0.0.5
+  resolution: "poseidon-solidity@npm:0.0.5"
+  checksum: eb2d84962505a3c8a5756752c8e571ad32f90f4d95fafaffbd03552abfa040553945990d96d0243ddd993d6c2e456a816435c97739610a4f6aabb9249ebf47d7
   languageName: node
   linkType: hard
 
