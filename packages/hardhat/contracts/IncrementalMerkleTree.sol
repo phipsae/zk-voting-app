@@ -46,25 +46,31 @@ contract IncrementalMerkleTree {
         bytes32 _root,
         bytes32 _nullifierHash,
         bytes32 _statement,
-        bytes32 _depth
+        bytes32 _depth,
+        string memory _originalStatement
     ) public {
         if (s_nullifierHashes[_nullifierHash]) {
             revert IncrementalMerkleTree__NullifierHashAlreadyUsed(_nullifierHash);
         }
         s_nullifierHashes[_nullifierHash] = true;
 
+        // Verify that the provided original statement matches the hash in the proof
+        bytes32 expectedStatementHash = bytes32(uint256(keccak256(abi.encodePacked(_originalStatement))) % MODULUS);
+        if (_statement != expectedStatementHash) {
+            revert IncrementalMerkleTree__InvalidProof();
+        }
+
         bytes32[] memory publicInputs = new bytes32[](4);
         publicInputs[0] = _root;
         publicInputs[1] = _nullifierHash;
-        // publicInputs[2] = stringToBytes32(_statement);
-        publicInputs[2] = _statement;
+        publicInputs[2] = _statement; // This is the hash
         publicInputs[3] = _depth;
 
         if (!i_verifier.verify(_proof, publicInputs)) {
             revert IncrementalMerkleTree__InvalidProof();
         }
 
-        statement = bytes32ToString(_statement);
+        statement = _originalStatement; // Store the original readable statement
     }
 
     // getters
