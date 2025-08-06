@@ -3,10 +3,14 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import {LeanIMT, LeanIMTData} from "@zk-kit/lean-imt.sol/LeanIMT.sol";
 import {PoseidonT3} from "poseidon-solidity/PoseidonT3.sol";
+import {PoseidonT2} from "poseidon-solidity/PoseidonT2.sol";
+
 import {IVerifier} from "./Verifier.sol";
 
 contract IncrementalMerkleTree {
     using LeanIMT for LeanIMTData;
+
+    uint256 constant MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     IVerifier public immutable i_verifier;
 
@@ -41,7 +45,7 @@ contract IncrementalMerkleTree {
         bytes memory _proof,
         bytes32 _root,
         bytes32 _nullifierHash,
-        string memory _statement,
+        bytes32 _statement,
         bytes32 _depth
     ) public {
         if (s_nullifierHashes[_nullifierHash]) {
@@ -49,22 +53,18 @@ contract IncrementalMerkleTree {
         }
         s_nullifierHashes[_nullifierHash] = true;
 
-        bytes32[] memory publicInputs = new bytes32[](3);
+        bytes32[] memory publicInputs = new bytes32[](4);
         publicInputs[0] = _root;
         publicInputs[1] = _nullifierHash;
-        // Convert string to bytes32 by taking the first 32 bytes of the string's bytes representation
-        bytes32 statementBytes32;
-        assembly {
-            statementBytes32 := mload(add(_statement, 32))
-        }
-        publicInputs[2] = statementBytes32;
+        // publicInputs[2] = stringToBytes32(_statement);
+        publicInputs[2] = _statement;
         publicInputs[3] = _depth;
 
         if (!i_verifier.verify(_proof, publicInputs)) {
             revert IncrementalMerkleTree__InvalidProof();
         }
 
-        statement = _statement;
+        statement = bytes32ToString(_statement);
     }
 
     // getters
@@ -85,7 +85,37 @@ contract IncrementalMerkleTree {
         return tree.depth;
     }
 
+    function getRoot() public view returns (uint256) {
+        return tree.root();
+    }
+
     function calculatePoseidonHash(uint256 left, uint256 right) public pure returns (uint256) {
         return PoseidonT3.hash([left, right]);
+    }
+
+    function stringToBytes32(string memory source) public pure returns (bytes32 result) {
+        bytes memory temp = bytes(source);
+        if (temp.length == 0) {
+            return 0x0;
+        }
+
+        // Truncate if longer than 32 bytes
+        assembly {
+            result := mload(add(source, 32))
+        }
+    }
+
+    function bytes32ToString(bytes32 _bytes32) public pure returns (string memory) {
+        uint8 i = 0;
+        while (i < 32 && _bytes32[i] != 0) {
+            i++;
+        }
+
+        bytes memory bytesArray = new bytes(i);
+        for (uint8 j = 0; j < i; j++) {
+            bytesArray[j] = _bytes32[j];
+        }
+
+        return string(bytesArray);
     }
 }

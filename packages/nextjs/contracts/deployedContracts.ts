@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     HonkVerifier: {
-      address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
+      address: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
       abi: [
         {
           inputs: [],
@@ -55,10 +55,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 28,
+      deployedOnBlock: 26,
     },
     IncrementalMerkleTree: {
-      address: "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
+      address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
       abi: [
         {
           inputs: [
@@ -116,6 +116,25 @@ const deployedContracts = {
           ],
           name: "NewLeaf",
           type: "event",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "_bytes32",
+              type: "bytes32",
+            },
+          ],
+          name: "bytes32ToString",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
         },
         {
           inputs: [
@@ -182,6 +201,19 @@ const deployedContracts = {
             },
           ],
           name: "getNode",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getRoot",
           outputs: [
             {
               internalType: "uint256",
@@ -287,9 +319,9 @@ const deployedContracts = {
               type: "bytes32",
             },
             {
-              internalType: "string",
+              internalType: "bytes32",
               name: "_statement",
-              type: "string",
+              type: "bytes32",
             },
             {
               internalType: "bytes32",
@@ -316,6 +348,25 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "string",
+              name: "source",
+              type: "string",
+            },
+          ],
+          name: "stringToBytes32",
+          outputs: [
+            {
+              internalType: "bytes32",
+              name: "result",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "tree",
           outputs: [
@@ -335,10 +386,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 32,
+      deployedOnBlock: 30,
     },
     LeanIMT: {
-      address: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
+      address: "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
       abi: [
         {
           inputs: [],
@@ -367,10 +418,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 30,
+      deployedOnBlock: 28,
     },
     PoseidonT3: {
-      address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
       abi: [
         {
           inputs: [
@@ -393,7 +444,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 26,
+      deployedOnBlock: 24,
     },
   },
 } as const;

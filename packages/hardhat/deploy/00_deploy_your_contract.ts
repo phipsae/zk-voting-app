@@ -22,7 +22,13 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const poseidon = await deploy("PoseidonT3", {
+  const poseidon3 = await deploy("PoseidonT3", {
+    from: deployer,
+    log: true,
+    autoMine: true,
+  });
+
+  const poseidon2 = await deploy("PoseidonT3", {
     from: deployer,
     log: true,
     autoMine: true,
@@ -40,7 +46,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     autoMine: true,
     libraries: {
       // LeanIMT: leanIMT.address,
-      PoseidonT3: poseidon.address,
+      PoseidonT3: poseidon3.address,
     },
   });
 
@@ -54,7 +60,8 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     autoMine: true,
     libraries: {
       LeanIMT: leanIMT.address,
-      PoseidonT3: poseidon.address,
+      PoseidonT3: poseidon3.address,
+      PoseidonT2: poseidon2.address,
     },
   });
 

@@ -18,6 +18,21 @@ fn main(
 ) {
     let commitment: Field = hash_2([nullifier, secret]);
 
+    println("root - argument");
+    println(root);
+
+    println("commitment");
+    println(commitment);
+
+    println("left -siblings[0]");
+    println(siblings[0]);
+
+    println("left -siblings[1]");
+    println(siblings[1]);
+
+    println("root calculated with hash_2");
+    println(hash_2([siblings[0], commitment]));
+
     let computed_nullifier_hash: Field = hash_1([nullifier]);
     assert(computed_nullifier_hash == nullifier_hash);
 
@@ -28,24 +43,18 @@ fn main(
         }
     }
 
+    println("siblings");
+    println(siblings);
+
     let index_bits: [u1; 4] = index.to_le_bits();
     assert(depth <= siblings.len());
 
     let computed_root = binary_merkle_root(hash_2, commitment, siblings_num, index_bits, siblings);
 
-    println("root calculated");
-    println(hash_2([siblings[0], commitment]));
-    println("left -siblings[0]");
-    println(siblings[0]);
     println("right - commitment");
     println(commitment);
     println("computed_root from function");
     println(computed_root);
-    println("root");
-    println(root);
-
-    println("commitment");
-    println(commitment);
 
     // println("siblings.len()");
     // println(siblings.len());
@@ -57,6 +66,7 @@ fn main(
 
     assert(computed_root == root);
 
-    let statement_binding = statement * statement;
-    assert(statement_binding == statement * statement);
+    // Verify statement is properly bound to the proof
+    // This ensures the statement value is included in the circuit constraints
+    assert(statement != 0);
 }

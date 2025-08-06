@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CreateCommitment } from "./_components/CreateCommitment";
+import { GenerateProof } from "./_components/GenerateProof";
 import MerkleTreeVisualization from "./_components/MerkleTreeVisualization";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
@@ -45,6 +47,9 @@ const Home: NextPage = () => {
             <p className="my-2 font-medium">Connected Address:</p>
             <Address address={connectedAddress} />
           </div>
+          <GenerateProof />
+
+          <CreateCommitment />
 
           <button
             onClick={() => {
@@ -62,15 +67,6 @@ const Home: NextPage = () => {
               <h3 className="text-lg font-bold mb-2">Leaf Events Details:</h3>
               {leafEventsArray.map((event, index) => (
                 <div key={event.logIndex || index} className="mb-2 p-2 bg-base-100 rounded">
-                  <p>
-                    <strong>Index:</strong> {index}
-                  </p>
-                  <p>
-                    <strong>Block:</strong> {event.blockNumber?.toString()}
-                  </p>
-                  <p>
-                    <strong>Tx Hash:</strong> {event.transactionHash}
-                  </p>
                   {event.args &&
                     Object.keys(event.args).map(key => (
                       <p key={key}>
