@@ -9,7 +9,7 @@ import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
 import { useScaffoldEventHistory, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-// const MODULUS = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
+const MODULUS = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
 const STATEMENT_TEXT = "I have proven knowledge of my secret commitment!";
 
 export const GenerateProof = () => {
@@ -96,9 +96,9 @@ export const GenerateProof = () => {
             root as bigint,
             STATEMENT_TEXT,
             Number(treeData?.[1] || 0),
-            "0x284f851579558a2eb8e449fa2779590d1bb9954da3d9cca2d03a65cb368ffab6", // private input
-            "0x01d55a1460b625a6c3c6f330a191f209d655a71e2b58c2430bf67d42da1856cd", // private input
-            4, // private input - index where proof should be done
+            "0x15ef79a649aa38aebadc1b670a011ef9aeb4a323f670c43cc8eac7d740aee25f", // private input
+            "0x22b3112b445c697b5fc697e5eeda2ba77829582edfaf2d26016885ba91f5ea8d", // private input
+            2, // private input - index where proof should be done
             leafEvents as any, // all the leaves to create tree
             circuitData,
           );
@@ -135,8 +135,9 @@ export const GenerateProof = () => {
                 uint8ArrayToHexString(proof as Uint8Array),
                 publicInputs[0], // _root
                 publicInputs[1], // _nullifierHash
-                publicInputs[2], // _statement - pass the actual statement text
+                publicInputs[2], // _statement - this is the hashed statement from the proof
                 publicInputs[3], // _depth - use tree depth as bytes32
+                STATEMENT_TEXT, // _originalStatement - the readable text
               ],
             });
           } catch (e) {
@@ -191,11 +192,14 @@ const generateProof = async (
     const noir = new Noir(_circuitData);
     const honk = new UltraHonkBackend(_circuitData.bytecode, { threads: 1 });
 
+    // Convert statement string to field element using keccak256 hash
+    const statementHash = BigInt(ethers.keccak256(ethers.toUtf8Bytes(_statement))) % MODULUS;
+
     const input = {
       // Public inputs
       root: _root.toString(),
       nullifier_hash: nullifierHash.toString(),
-      statement: "1", //poseidon1([BigInt(ethers.keccak256(ethers.toUtf8Bytes(_statement))) % MODULUS]).toString(),
+      statement: statementHash.toString(),
       depth: _depth.toString(), // Use actual siblings needed instead of tree depth
       // // private inputs
       nullifier: BigInt(_nullifier).toString(), // Convert hex to decimal string
