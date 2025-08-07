@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     HonkVerifier: {
-      address: "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+      address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
       abi: [
         {
           inputs: [],
@@ -55,10 +55,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 64,
+      deployedOnBlock: 31,
     },
     IncrementalMerkleTree: {
-      address: "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f",
+      address: "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1",
       abi: [
         {
           inputs: [
@@ -118,47 +118,41 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
           inputs: [
             {
+              indexed: true,
               internalType: "bytes32",
-              name: "_bytes32",
+              name: "nullifierHash",
               type: "bytes32",
             },
-          ],
-          name: "bytes32ToString",
-          outputs: [
             {
-              internalType: "string",
-              name: "",
-              type: "string",
+              indexed: false,
+              internalType: "bool",
+              name: "vote",
+              type: "bool",
             },
-          ],
-          stateMutability: "pure",
-          type: "function",
-        },
-        {
-          inputs: [
             {
+              indexed: false,
               internalType: "uint256",
-              name: "left",
+              name: "timestamp",
               type: "uint256",
             },
             {
+              indexed: false,
               internalType: "uint256",
-              name: "right",
+              name: "totalYes",
               type: "uint256",
             },
-          ],
-          name: "calculatePoseidonHash",
-          outputs: [
             {
+              indexed: false,
               internalType: "uint256",
-              name: "",
+              name: "totalNo",
               type: "uint256",
             },
           ],
-          stateMutability: "pure",
-          type: "function",
+          name: "VoteCast",
+          type: "event",
         },
         {
           inputs: [],
@@ -264,6 +258,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "noVotes",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "uint256",
@@ -320,18 +327,13 @@ const deployedContracts = {
             },
             {
               internalType: "bytes32",
-              name: "_statement",
+              name: "_vote",
               type: "bytes32",
             },
             {
               internalType: "bytes32",
               name: "_depth",
               type: "bytes32",
-            },
-            {
-              internalType: "string",
-              name: "_originalStatement",
-              type: "string",
             },
           ],
           name: "setStatement",
@@ -353,25 +355,6 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
-            {
-              internalType: "string",
-              name: "source",
-              type: "string",
-            },
-          ],
-          name: "stringToBytes32",
-          outputs: [
-            {
-              internalType: "bytes32",
-              name: "result",
-              type: "bytes32",
-            },
-          ],
-          stateMutability: "pure",
-          type: "function",
-        },
-        {
           inputs: [],
           name: "tree",
           outputs: [
@@ -389,12 +372,25 @@ const deployedContracts = {
           stateMutability: "view",
           type: "function",
         },
+        {
+          inputs: [],
+          name: "yesVotes",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 68,
+      deployedOnBlock: 35,
     },
     LeanIMT: {
-      address: "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+      address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
       abi: [
         {
           inputs: [],
@@ -423,10 +419,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 66,
+      deployedOnBlock: 33,
     },
     PoseidonT3: {
-      address: "0x59b670e9fA9D0A427751Af201D676719a970857b",
+      address: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
       abi: [
         {
           inputs: [
@@ -449,7 +445,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 62,
+      deployedOnBlock: 29,
     },
   },
 } as const;

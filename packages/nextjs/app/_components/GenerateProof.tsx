@@ -9,9 +9,6 @@ import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
 import { useScaffoldEventHistory, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-const MODULUS = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617");
-const STATEMENT_TEXT = "I have proven knowledge of my secret commitment!";
-
 export const GenerateProof = () => {
   const [circuitData, setCircuitData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -94,10 +91,10 @@ export const GenerateProof = () => {
         onClick={async () => {
           const generatedProof = await generateProof(
             root as bigint,
-            STATEMENT_TEXT,
+            true as boolean,
             Number(treeData?.[1] || 0),
-            "0x15ef79a649aa38aebadc1b670a011ef9aeb4a323f670c43cc8eac7d740aee25f", // private input
-            "0x22b3112b445c697b5fc697e5eeda2ba77829582edfaf2d26016885ba91f5ea8d", // private input
+            "0x0be399217d884d56853b17fa27dcee7e26de7efc72f786fbbc56557bf0ef4028", // private input
+            "0x0b2f4df4b37f3b3fc7ef099117a40208bc331f9be1fe99c8af173355212b3225", // private input
             2, // private input - index where proof should be done
             leafEvents as any, // all the leaves to create tree
             circuitData,
@@ -113,7 +110,6 @@ export const GenerateProof = () => {
         type="button"
         onClick={() => {
           console.log("Generated Proof:", proof);
-          console.log("statement", STATEMENT_TEXT);
           console.log("Public Inputs:", publicInputs[2].toString());
         }}
       >
@@ -135,9 +131,8 @@ export const GenerateProof = () => {
                 uint8ArrayToHexString(proof as Uint8Array),
                 publicInputs[0], // _root
                 publicInputs[1], // _nullifierHash
-                publicInputs[2], // _statement - this is the hashed statement from the proof
-                publicInputs[3], // _depth - use tree depth as bytes32
-                STATEMENT_TEXT, // _originalStatement - the readable text
+                publicInputs[2], // _vote
+                publicInputs[3], // _depth
               ],
             });
           } catch (e) {
@@ -153,7 +148,7 @@ export const GenerateProof = () => {
 
 const generateProof = async (
   _root: bigint,
-  _statement: string,
+  _vote: boolean,
   _depth: number,
   _nullifier: string,
   _secret: string,
@@ -192,14 +187,11 @@ const generateProof = async (
     const noir = new Noir(_circuitData);
     const honk = new UltraHonkBackend(_circuitData.bytecode, { threads: 1 });
 
-    // Convert statement string to field element using keccak256 hash
-    const statementHash = BigInt(ethers.keccak256(ethers.toUtf8Bytes(_statement))) % MODULUS;
-
     const input = {
       // Public inputs
       root: _root.toString(),
       nullifier_hash: nullifierHash.toString(),
-      statement: statementHash.toString(),
+      vote: _vote, // Pass boolean directly, not as string
       depth: _depth.toString(), // Use actual siblings needed instead of tree depth
       // // private inputs
       nullifier: BigInt(_nullifier).toString(), // Convert hex to decimal string
