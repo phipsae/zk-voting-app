@@ -42,6 +42,7 @@ contract IncrementalMerkleTree {
         emit NewLeaf(tree.size - 1, _commitment);
     }
 
+    // TODO: change to vote
     function setStatement(bytes memory _proof, bytes32 _root, bytes32 _nullifierHash, bytes32 _vote, bytes32 _depth)
         public
     {

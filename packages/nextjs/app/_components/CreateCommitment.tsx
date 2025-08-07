@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldEventHistory, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useGlobalState } from "~~/services/store/store";
 
 interface CommitmentData {
   commitment: string;
@@ -14,9 +15,17 @@ interface CommitmentData {
 }
 
 export const CreateCommitment = () => {
-  const [commitmentData, setCommitmentData] = useState<CommitmentData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
+  const [isInserted, setIsInserted] = useState(false);
+  const { setCommitmentData, commitmentData } = useGlobalState();
+
+  const { data: leafEvents } = useScaffoldEventHistory({
+    contractName: "IncrementalMerkleTree",
+    eventName: "NewLeaf",
+    fromBlock: 0n,
+    watch: true,
+  });
 
   const { writeContractAsync: writeIncrementalMerkleTreeAsync } = useScaffoldWriteContract({
     contractName: "IncrementalMerkleTree",
@@ -34,6 +43,11 @@ export const CreateCommitment = () => {
     }
   };
 
+  const copyToClipboard = (data: any) => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    navigator.clipboard.writeText(jsonStr);
+  };
+
   const handleInsertCommitment = async () => {
     if (!commitmentData) return;
 
@@ -43,6 +57,14 @@ export const CreateCommitment = () => {
         functionName: "insert",
         args: [BigInt(commitmentData.commitment)],
       });
+
+      // Update commitment data with the index (it will be the latest leaf)
+      // TODO: maybe check directly merkletree size
+      if (leafEvents) {
+        const newIndex = leafEvents.length;
+        setCommitmentData({ ...commitmentData, index: newIndex });
+        setIsInserted(true);
+      }
     } catch (error) {
       console.error("Error inserting commitment:", error);
     } finally {
@@ -55,38 +77,49 @@ export const CreateCommitment = () => {
       <h2 className="text-2xl font-bold text-center">ZK Commitment Generator</h2>
 
       <div className="flex flex-col space-y-4">
-        <button className="btn btn-primary btn-lg" onClick={handleGenerateCommitment} disabled={isGenerating}>
+        <button
+          className="btn btn-primary btn-lg"
+          onClick={async () => {
+            await handleGenerateCommitment();
+            if (commitmentData) {
+              await handleInsertCommitment();
+            }
+          }}
+          disabled={isGenerating || isInserting}
+        >
           {isGenerating ? (
             <>
               <span className="loading loading-spinner loading-sm"></span>
-              Generating...
+              Generating Commitment...
+            </>
+          ) : isInserting ? (
+            <>
+              <span className="loading loading-spinner loading-sm"></span>
+              Inserting into Merkle Tree...
             </>
           ) : (
-            "Generate Commitment"
+            "Generate & Insert Commitment"
           )}
         </button>
-
-        {commitmentData && (
-          <button className="btn btn-secondary" onClick={handleInsertCommitment} disabled={isInserting}>
-            {isInserting ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                Inserting...
-              </>
-            ) : (
-              "Insert into Merkle Tree"
-            )}
-          </button>
-        )}
       </div>
 
       {commitmentData && (
         <div className="w-full max-w-4xl space-y-4">
-          <h3 className="text-xl font-semibold">Generated Commitment Data:</h3>
-
-          <button className="btn btn-primary" onClick={() => console.log(BigInt(commitmentData.commitment))}>
-            Hello
-          </button>
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Generated Commitment Data:</h3>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() =>
+                copyToClipboard({
+                  nullifier: commitmentData.nullifier,
+                  secret: commitmentData.secret,
+                  index: commitmentData.index,
+                })
+              }
+            >
+              Copy Proof Data
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-base-200 p-4 rounded-lg">
@@ -105,27 +138,45 @@ export const CreateCommitment = () => {
             </div>
 
             <div className="bg-base-200 p-4 rounded-lg">
+              <h4 className="font-semibold text-sm text-gray-600 mb-2">Index:</h4>
+              <code className="text-xs break-all bg-base-300 p-2 rounded block">
+                {commitmentData.index ?? "Not inserted yet"}
+              </code>
+            </div>
+
+            <div className="bg-base-200 p-4 rounded-lg">
               <h4 className="font-semibold text-sm text-gray-600 mb-2">Encoded Data:</h4>
               <code className="text-xs break-all bg-base-300 p-2 rounded block">{commitmentData.encoded}</code>
             </div>
           </div>
 
-          <div className="alert alert-info">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              className="stroke-current shrink-0 w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-            <span>Save your nullifier and secret securely! You&apos;ll need them to generate proofs later.</span>
-          </div>
+          {isInserted && (
+            <div className="alert alert-error shadow-lg">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current shrink-0 h-12 w-12"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div className="flex flex-col">
+                <h3 className="text-lg font-bold">🚨 IMPORTANT: Save Your Data NOW! 🚨</h3>
+                <p>
+                  Make sure you have copied and securely stored your nullifier and secret values before leaving this
+                  page. These values are NOT recoverable and are REQUIRED for future proof generation!
+                </p>
+                <p className="mt-2 font-bold">
+                  ⚠️ Without these values, you will lose access to your commitment permanently! ⚠️
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

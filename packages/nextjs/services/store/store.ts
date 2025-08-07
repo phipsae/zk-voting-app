@@ -11,6 +11,14 @@ import { ChainWithAttributes, NETWORKS_EXTRA_DATA } from "~~/utils/scaffold-eth"
  * Think about it as a global useState.
  */
 
+type CommitmentData = {
+  commitment: string;
+  nullifier: string;
+  secret: string;
+  encoded: string;
+  index?: number;
+};
+
 type GlobalState = {
   nativeCurrency: {
     price: number;
@@ -20,6 +28,8 @@ type GlobalState = {
   setIsNativeCurrencyFetching: (newIsNativeCurrencyFetching: boolean) => void;
   targetNetwork: ChainWithAttributes;
   setTargetNetwork: (newTargetNetwork: ChainWithAttributes) => void;
+  commitmentData: CommitmentData | null;
+  setCommitmentData: (data: CommitmentData | null) => void;
 };
 
 export const useGlobalState = create<GlobalState>(set => ({
@@ -36,4 +46,6 @@ export const useGlobalState = create<GlobalState>(set => ({
     ...NETWORKS_EXTRA_DATA[scaffoldConfig.targetNetworks[0].id],
   },
   setTargetNetwork: (newTargetNetwork: ChainWithAttributes) => set(() => ({ targetNetwork: newTargetNetwork })),
+  commitmentData: null,
+  setCommitmentData: (data: CommitmentData | null) => set(() => ({ commitmentData: data })),
 }));

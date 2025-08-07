@@ -7,13 +7,16 @@ import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
+import { LeafEventsList } from "~~/app/_components/LeafEventsList";
 import { useScaffoldEventHistory, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useGlobalState } from "~~/services/store/store";
 
 export const GenerateProof = () => {
-  const [circuitData, setCircuitData] = useState<any>(null);
+  const [, setCircuitData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [proof, setProof] = useState<any>(null);
   const [publicInputs, setPublicInputs] = useState<any>(null);
+  const { commitmentData } = useGlobalState();
   // const [statementText, setStatementText] = useState("I have proven knowledge of my secret commitment!");
 
   const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract({
@@ -38,9 +41,10 @@ export const GenerateProof = () => {
     enabled: true,
   });
 
-  const getCircuitData = async () => {
+  const getCircuitDataAndGenerateProof = async () => {
     setIsLoading(true);
     try {
+      // First fetch circuit data
       const response = await fetch("/api/circuit");
       if (!response.ok) {
         throw new Error("Failed to fetch circuit data");
@@ -48,100 +52,104 @@ export const GenerateProof = () => {
       const data = await response.json();
       setCircuitData(data);
       console.log("Circuit data:", data);
+
+      // Then generate proof with the fetched circuit data
+      if (!commitmentData || commitmentData.index === undefined) {
+        throw new Error("Please generate and insert a commitment first");
+      }
+
+      const generatedProof = await generateProof(
+        root as bigint,
+        true as boolean,
+        Number(treeData?.[1] || 0),
+        commitmentData.nullifier,
+        commitmentData.secret,
+        commitmentData.index,
+        leafEvents as any,
+        data,
+      );
+      setProof(generatedProof.proof);
+      setPublicInputs(generatedProof.publicInputs);
     } catch (error) {
-      console.error("Error fetching circuit data:", error);
+      console.error("Error in getCircuitDataAndGenerateProof:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div>
-      Tree data: Size: {treeData?.[0]} Depth: {treeData?.[1]} Root: {root}
-      <button type="button" className="btn btn-primary" onClick={getCircuitData} disabled={isLoading}>
-        {isLoading ? "Loading..." : "Get circuit abi"}
-      </button>
-      {leafEvents && leafEvents.length > 0 && (
-        <div className="mt-4 p-4 bg-base-200 rounded-lg">
-          <h3 className="text-lg font-bold mb-2">Leaf Events:</h3>
-          {leafEvents.map((event, idx) => {
-            // Compose a unique key using logIndex and transactionHash if available, else fallback to idx
-            const uniqueKey =
-              event.logIndex !== undefined && event.transactionHash
-                ? `${event.transactionHash}-${event.logIndex}`
-                : event.logIndex !== undefined
-                  ? `logIndex-${event.logIndex}`
-                  : `idx-${idx}`;
-            return (
-              <div key={uniqueKey} className="mb-2 p-2 bg-base-100 rounded">
-                {event.args &&
-                  Object.entries(event.args).map(([key, value]) => (
-                    <p key={`${uniqueKey}-${key}`}>
-                      <strong>{key}:</strong> {String(value)}
-                    </p>
-                  ))}
+    <div className="flex flex-col gap-2">
+      <div className="card bg-base-200 shadow-xl p-6 mb-6">
+        <h2 className="card-title text-xl mb-4">Merkle Tree Data</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="stat bg-base-100 rounded-box p-4">
+            <div className="stat-title">Size</div>
+            <div className="stat-value text-primary">{treeData?.[0]?.toString() || "0"}</div>
+          </div>
+          <div className="stat bg-base-100 rounded-box p-4">
+            <div className="stat-title">Depth</div>
+            <div className="stat-value text-secondary">{treeData?.[1]?.toString() || "0"}</div>
+          </div>
+          <div className="stat bg-base-100 rounded-box p-4">
+            <div className="stat-title">Root</div>
+            <div className="stat-value text-accent break-all text-sm">
+              {root ? `${root.toString().slice(0, 10)}...${root.toString().slice(-8)}` : "Not available"}
+            </div>
+            {root && (
+              <div
+                className="stat-desc mt-1 cursor-pointer hover:text-accent"
+                onClick={() => navigator.clipboard.writeText(root.toString())}
+              >
+                Click to copy full root
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
-      )}
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={async () => {
-          const generatedProof = await generateProof(
-            root as bigint,
-            true as boolean,
-            Number(treeData?.[1] || 0),
-            "0x0be399217d884d56853b17fa27dcee7e26de7efc72f786fbbc56557bf0ef4028", // private input
-            "0x0b2f4df4b37f3b3fc7ef099117a40208bc331f9be1fe99c8af173355212b3225", // private input
-            2, // private input - index where proof should be done
-            leafEvents as any, // all the leaves to create tree
-            circuitData,
-          );
-          setProof(generatedProof.proof);
-          setPublicInputs(generatedProof.publicInputs);
-        }}
-      >
-        Generate proof
-      </button>
-      <button
-        className="btn btn-accent mt-4"
-        type="button"
-        onClick={() => {
-          console.log("Generated Proof:", proof);
-          console.log("Public Inputs:", publicInputs[2].toString());
-        }}
-      >
-        Console Log Proof
-      </button>
-      <button
-        className="btn btn-primary"
-        disabled={!proof || !publicInputs}
-        onClick={async () => {
-          try {
-            if (!proof || !publicInputs) {
-              console.error("Please generate proof first");
-              return;
-            }
+      </div>
+      <div className="flex flex-col gap-2">
+        <button type="button" className="btn btn-primary" onClick={getCircuitDataAndGenerateProof} disabled={isLoading}>
+          {isLoading ? "Generating Proof..." : "Generate Proof"}
+        </button>
+        <button
+          className="btn btn-primary"
+          type="button"
+          onClick={() => {
+            console.log("Generated Proof:", proof);
+            console.log("Public Inputs:", publicInputs[2].toString());
+          }}
+        >
+          Console Log Proof
+        </button>
+        <h2 className="card-title text-xl mb-4">Vote with DIFFERENT Address</h2>
+        <button
+          className="btn btn-primary"
+          disabled={!proof || !publicInputs}
+          onClick={async () => {
+            try {
+              if (!proof || !publicInputs) {
+                console.error("Please generate proof first");
+                return;
+              }
 
-            await writeYourContractAsync({
-              functionName: "setStatement",
-              args: [
-                uint8ArrayToHexString(proof as Uint8Array),
-                publicInputs[0], // _root
-                publicInputs[1], // _nullifierHash
-                publicInputs[2], // _vote
-                publicInputs[3], // _depth
-              ],
-            });
-          } catch (e) {
-            console.error("Error setting statement:", e);
-          }
-        }}
-      >
-        Set Statement
-      </button>
+              await writeYourContractAsync({
+                functionName: "setStatement",
+                args: [
+                  uint8ArrayToHexString(proof as Uint8Array),
+                  publicInputs[0], // _root
+                  publicInputs[1], // _nullifierHash
+                  publicInputs[2], // _vote
+                  publicInputs[3], // _depth
+                ],
+              });
+            } catch (e) {
+              console.error("Error setting statement:", e);
+            }
+          }}
+        >
+          Vote
+        </button>
+      </div>
+      <LeafEventsList leafEvents={leafEvents || []} />
     </div>
   );
 };
