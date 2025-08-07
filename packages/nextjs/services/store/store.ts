@@ -19,6 +19,11 @@ type CommitmentData = {
   index?: number;
 };
 
+type ProofData = {
+  proof: Uint8Array;
+  publicInputs: any[];
+};
+
 type GlobalState = {
   nativeCurrency: {
     price: number;
@@ -30,6 +35,10 @@ type GlobalState = {
   setTargetNetwork: (newTargetNetwork: ChainWithAttributes) => void;
   commitmentData: CommitmentData | null;
   setCommitmentData: (data: CommitmentData | null) => void;
+  proofData: ProofData | null;
+  setProofData: (data: ProofData | null) => void;
+  voteChoice: boolean | null;
+  setVoteChoice: (choice: boolean | null) => void;
 };
 
 export const useGlobalState = create<GlobalState>(set => ({
@@ -48,4 +57,8 @@ export const useGlobalState = create<GlobalState>(set => ({
   setTargetNetwork: (newTargetNetwork: ChainWithAttributes) => set(() => ({ targetNetwork: newTargetNetwork })),
   commitmentData: null,
   setCommitmentData: (data: CommitmentData | null) => set(() => ({ commitmentData: data })),
+  proofData: null,
+  setProofData: (data: ProofData | null) => set(() => ({ proofData: data })),
+  voteChoice: null,
+  setVoteChoice: (choice: boolean | null) => set(() => ({ voteChoice: choice })),
 }));

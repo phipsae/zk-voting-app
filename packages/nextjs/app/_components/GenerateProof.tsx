@@ -8,20 +8,24 @@ import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
 import { LeafEventsList } from "~~/app/_components/LeafEventsList";
-import { useScaffoldEventHistory, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 
 export const GenerateProof = () => {
   const [, setCircuitData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [proof, setProof] = useState<any>(null);
-  const [publicInputs, setPublicInputs] = useState<any>(null);
-  const { commitmentData } = useGlobalState();
+  const { commitmentData, setProofData, proofData, voteChoice } = useGlobalState();
+
+  // const generateBurnerWallet = () => {
+  //   const wallet = ethers.Wallet.createRandom();
+  //   setBurnerWallet(wallet);
+  //   return wallet;
+  // };
   // const [statementText, setStatementText] = useState("I have proven knowledge of my secret commitment!");
 
-  const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract({
-    contractName: "IncrementalMerkleTree",
-  });
+  // const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract({
+  //   contractName: "IncrementalMerkleTree",
+  // });
 
   const { data: treeData } = useScaffoldReadContract({
     contractName: "IncrementalMerkleTree",
@@ -58,9 +62,13 @@ export const GenerateProof = () => {
         throw new Error("Please generate and insert a commitment first");
       }
 
+      if (voteChoice === null) {
+        throw new Error("Please select your vote (Yes/No) first");
+      }
+
       const generatedProof = await generateProof(
         root as bigint,
-        true as boolean,
+        voteChoice,
         Number(treeData?.[1] || 0),
         commitmentData.nullifier,
         commitmentData.secret,
@@ -68,8 +76,10 @@ export const GenerateProof = () => {
         leafEvents as any,
         data,
       );
-      setProof(generatedProof.proof);
-      setPublicInputs(generatedProof.publicInputs);
+      setProofData({
+        proof: generatedProof.proof,
+        publicInputs: generatedProof.publicInputs,
+      });
     } catch (error) {
       console.error("Error in getCircuitDataAndGenerateProof:", error);
     } finally {
@@ -114,14 +124,14 @@ export const GenerateProof = () => {
           className="btn btn-primary"
           type="button"
           onClick={() => {
-            console.log("Generated Proof:", proof);
-            console.log("Public Inputs:", publicInputs[2].toString());
+            console.log("Generated Proof:", proofData?.proof);
+            console.log("Public Inputs:", proofData?.publicInputs[2].toString());
           }}
         >
           Console Log Proof
         </button>
         <h2 className="card-title text-xl mb-4">Vote with DIFFERENT Address</h2>
-        <button
+        {/* <button
           className="btn btn-primary"
           disabled={!proof || !publicInputs}
           onClick={async () => {
@@ -147,7 +157,7 @@ export const GenerateProof = () => {
           }}
         >
           Vote
-        </button>
+        </button> */}
       </div>
       <LeafEventsList leafEvents={leafEvents || []} />
     </div>
@@ -228,17 +238,3 @@ const generateProof = async (
     throw error;
   }
 };
-
-function uint8ArrayToHexString(buffer: Uint8Array): `0x${string}` {
-  const hex: string[] = [];
-
-  buffer.forEach(function (i) {
-    let h = i.toString(16);
-    if (h.length % 2) {
-      h = "0" + h;
-    }
-    hex.push(h);
-  });
-
-  return `0x${hex.join("")}`;
-}

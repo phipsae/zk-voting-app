@@ -18,11 +18,13 @@ contract IncrementalMerkleTree {
     mapping(bytes32 => bool) public s_nullifierHashes;
 
     LeanIMTData public tree;
+    // TODO: change to question
     string public statement = "How is the vibe?";
     uint256 public yesVotes;
     uint256 public noVotes;
 
     event NewLeaf(uint256 index, uint256 value);
+    //  TODO: add address from sender address to show that not the same person who registered
     event VoteCast(bytes32 indexed nullifierHash, bool vote, uint256 timestamp, uint256 totalYes, uint256 totalNo);
 
     error IncrementalMerkleTree__CommitmentAlreadyAdded(uint256 commitment);

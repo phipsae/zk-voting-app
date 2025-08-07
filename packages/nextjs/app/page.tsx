@@ -2,6 +2,9 @@
 
 import { CreateCommitment } from "./_components/CreateCommitment";
 import { GenerateProof } from "./_components/GenerateProof";
+import { VoteChoice } from "./_components/VoteChoice";
+import { VoteWithBurnerHardhat } from "./_components/VoteWithBurnerHardhat";
+import { VotingStats } from "./_components/VotingStats";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
@@ -20,8 +23,11 @@ const Home: NextPage = () => {
             <p className="my-2 font-medium">Connected Address:</p>
             <Address address={connectedAddress} />
           </div>
+          <VotingStats />
+          <VoteChoice />
           <CreateCommitment />
           <GenerateProof />
+          <VoteWithBurnerHardhat />
         </div>
       </div>
     </>
