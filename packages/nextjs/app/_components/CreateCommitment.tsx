@@ -70,11 +70,13 @@ export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => 
   };
 
   return (
-    <div className="flex flex-col items-center space-y-6 p-6 bg-base-100 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-center">Register for voting</h2>
-      <p className="text-sm text-center">ZK Commitment Generator</p>
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-5">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold">Step 1 — Register & insert commitment</h2>
+        <p className="text-sm opacity-70">Generate your anonymous identifier and insert it into the Merkle tree.</p>
+      </div>
 
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col gap-3">
         <button
           className="btn btn-primary btn-lg"
           onClick={async () => {
@@ -88,77 +90,64 @@ export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => 
           {isGenerating ? (
             <>
               <span className="loading loading-spinner loading-sm"></span>
-              Generating Commitment...
+              Generating commitment...
             </>
           ) : isInserting ? (
             <>
               <span className="loading loading-spinner loading-sm"></span>
-              Inserting into Merkle Tree...
+              Inserting into Merkle tree...
             </>
           ) : (
-            "Generate & Insert Commitment"
+            "Generate & insert commitment"
           )}
         </button>
+        <p className="text-xs opacity-70">This action will request a transaction to store your commitment on-chain.</p>
       </div>
 
       {commitmentData && (
-        <div className="w-full max-w-4xl space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Generated Commitment Data:</h3>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() =>
-                copyToClipboard({
-                  nullifier: commitmentData.nullifier,
-                  secret: commitmentData.secret,
-                  index: commitmentData.index,
-                })
-              }
-            >
-              Copy Proof Data
-            </button>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold">Generated commitment data</h3>
+            <div className="flex gap-2">
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() =>
+                  copyToClipboard({
+                    nullifier: commitmentData.nullifier,
+                    secret: commitmentData.secret,
+                    index: commitmentData.index,
+                  })
+                }
+              >
+                Copy JSON
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => copyToClipboard(commitmentData.commitment)}>
+                Copy commitment
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div className="bg-base-200 p-4 rounded-lg">
-              <h4 className="font-semibold text-sm text-gray-600 mb-2">Commitment:</h4>
-              <code className="text-xs break-all bg-base-300 p-2 rounded block">{commitmentData.commitment}</code>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-lg border border-base-300 p-3">
+              <div className="text-xs opacity-70 mb-1">Commitment</div>
+              <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.commitment}</code>
             </div>
-
-            <div className="bg-base-200 p-4 rounded-lg">
-              <h4 className="font-semibold text-sm text-gray-600 mb-2">Nullifier:</h4>
-              <code className="text-xs break-all bg-base-300 p-2 rounded block">{commitmentData.nullifier}</code>
+            <div className="rounded-lg border border-base-300 p-3">
+              <div className="text-xs opacity-70 mb-1">Nullifier</div>
+              <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.nullifier}</code>
             </div>
-
-            <div className="bg-base-200 p-4 rounded-lg">
-              <h4 className="font-semibold text-sm text-gray-600 mb-2">Secret:</h4>
-              <code className="text-xs break-all bg-base-300 p-2 rounded block">{commitmentData.secret}</code>
+            <div className="rounded-lg border border-base-300 p-3">
+              <div className="text-xs opacity-70 mb-1">Secret</div>
+              <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.secret}</code>
             </div>
           </div>
 
           {isInserted && (
-            <div className="alert alert-error shadow-lg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="stroke-current shrink-0 h-12 w-12"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              <div className="flex flex-col">
-                <h3 className="text-lg font-bold">🚨 IMPORTANT: Save Your Data NOW! 🚨</h3>
-                <p>
-                  Make sure you have copied and securely stored your nullifier and secret values before leaving this
-                  page. These values are NOT recoverable and are REQUIRED for future proof generation!
-                </p>
-                <p className="mt-2 font-bold">
-                  ⚠️ Without these values, you will lose access to your commitment permanently! ⚠️
+            <div className="alert alert-warning">
+              <div>
+                <h3 className="font-semibold">Save your nullifier and secret now</h3>
+                <p className="text-sm opacity-80">
+                  These values are required to generate your ZK proof later. They cannot be recovered if lost.
                 </p>
               </div>
             </div>

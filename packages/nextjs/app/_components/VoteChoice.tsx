@@ -5,9 +5,12 @@ export const VoteChoice = () => {
   const setVoteChoice = useGlobalState(state => state.setVoteChoice);
 
   return (
-    <div className="flex flex-col items-center gap-4 bg-base-100 shadow-lg rounded-2xl p-6 mt-4">
-      <h2 className="text-2xl font-bold">Your Vote</h2>
-      <div className="flex gap-4">
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-4">
+      <div className="space-y-1 text-center">
+        <h2 className="text-2xl font-bold">Step 2 — Choose your vote</h2>
+        <p className="text-sm opacity-70">Your selection is private in the ZK proof, not linked to your wallet.</p>
+      </div>
+      <div className="flex gap-3 justify-center">
         <button
           className={`btn btn-lg ${voteChoice === true ? "btn-success" : "btn-outline"}`}
           onClick={() => setVoteChoice(true)}
@@ -22,9 +25,9 @@ export const VoteChoice = () => {
         </button>
       </div>
       {voteChoice !== null && (
-        <div className="text-lg">
-          You selected:{" "}
-          <span className={voteChoice ? "text-success font-bold" : "text-error font-bold"}>
+        <div className="text-center text-sm">
+          Selected:{" "}
+          <span className={voteChoice ? "text-success font-semibold" : "text-error font-semibold"}>
             {voteChoice ? "Yes" : "No"}
           </span>
         </div>

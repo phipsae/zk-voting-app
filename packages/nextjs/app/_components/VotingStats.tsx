@@ -21,27 +21,26 @@ export const VotingStats = () => {
   const noPercentage = totalVotes > 0n ? Number(((noVotes || 0n) * 100n) / totalVotes) : 0;
 
   return (
-    <div className="flex flex-col items-center gap-4 bg-base-100 shadow-lg rounded-2xl p-6 mt-4">
-      <h2 className="text-2xl font-bold">Voting Statistics</h2>
-      <div className="text-xl text-center italic">&quot;{statement || "Loading..."}&quot;</div>
-      <div className="stats shadow w-full">
-        <div className="stat">
-          <div className="stat-title">Total Votes</div>
-          <div className="stat-value">{totalVotes.toString()}</div>
+    <div className="bg-base-100 shadow rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Proposal</h2>
+        <span className="text-xs opacity-70">Total: {totalVotes.toString()}</span>
+      </div>
+      <div className="text-sm text-center italic truncate">&quot;{statement || "Loading..."}&quot;</div>
+      <div className="grid grid-cols-2 gap-2 text-center">
+        <div className="rounded-lg border border-base-300 p-3">
+          <div className="text-xs opacity-70">Yes</div>
+          <div className="text-xl font-bold text-success">{yesVotes?.toString() || "0"}</div>
+          <div className="text-xs opacity-70">{yesPercentage.toFixed(1)}%</div>
         </div>
-        <div className="stat">
-          <div className="stat-title">Yes Votes</div>
-          <div className="stat-value text-success">{yesVotes?.toString() || "0"}</div>
-          <div className="stat-desc">{yesPercentage.toFixed(1)}% of total votes</div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">No Votes</div>
-          <div className="stat-value text-error">{noVotes?.toString() || "0"}</div>
-          <div className="stat-desc">{noPercentage.toFixed(1)}% of total votes</div>
+        <div className="rounded-lg border border-base-300 p-3">
+          <div className="text-xs opacity-70">No</div>
+          <div className="text-xl font-bold text-error">{noVotes?.toString() || "0"}</div>
+          <div className="text-xs opacity-70">{noPercentage.toFixed(1)}%</div>
         </div>
       </div>
-      <div className="w-full bg-base-200 rounded-full h-4">
-        <div className="bg-success h-4 rounded-full" style={{ width: `${yesPercentage}%` }} />
+      <div className="w-full bg-base-200 rounded-full h-2 overflow-hidden">
+        <div className="bg-success h-2" style={{ width: `${yesPercentage}%` }} />
       </div>
     </div>
   );

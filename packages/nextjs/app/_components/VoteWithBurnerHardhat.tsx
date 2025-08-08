@@ -68,8 +68,11 @@ export const VoteWithBurnerHardhat = () => {
   const [importJsonError, setImportJsonError] = useState<string>("");
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-base-200 rounded-lg">
-      <h2 className="card-title text-xl">Vote with Burner Wallet</h2>
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-4">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold">Step 4 — Cast vote (Local burner)</h2>
+        <p className="text-sm opacity-70">Use a local burner wallet to submit the on-chain vote via your node.</p>
+      </div>
 
       {burnerWallet && (
         <div className="flex items-center gap-2">
@@ -127,7 +130,7 @@ export const VoteWithBurnerHardhat = () => {
           }
         }}
       >
-        {txStatus === "pending" ? "Voting..." : "Vote with Burner Wallet"}
+        {txStatus === "pending" ? "Voting..." : "Vote with burner wallet"}
       </button>
 
       {txStatus === "success" && (

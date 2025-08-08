@@ -101,8 +101,11 @@ export const VoteWithBurnerPaymaster = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-base-200 rounded-lg">
-      <h2 className="card-title text-xl">Vote with Gasless Transaction (ERC-4337)</h2>
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-4">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold">Step 4 — Cast vote (Gasless)</h2>
+        <p className="text-sm opacity-70">Send your vote via an ERC-4337 smart account sponsored by a paymaster.</p>
+      </div>
 
       {smartAccount && (
         <div className="flex items-center gap-2">
@@ -111,14 +114,16 @@ export const VoteWithBurnerPaymaster = () => {
         </div>
       )}
 
-      <button
-        className="btn btn-primary"
-        onClick={() => {
-          console.log(smartAccount);
-        }}
-      >
-        Console log smart account
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          className="btn btn-ghost"
+          onClick={() => {
+            console.log(smartAccount);
+          }}
+        >
+          Console log smart account
+        </button>
+      </div>
 
       <button
         className="btn btn-primary"
@@ -177,7 +182,7 @@ export const VoteWithBurnerPaymaster = () => {
           }
         }}
       >
-        {txStatus === "pending" ? "Voting..." : "Vote Gasless with ERC-4337"}
+        {txStatus === "pending" ? "Voting..." : "Vote gasless (ERC-4337)"}
       </button>
 
       {txStatus === "success" && (

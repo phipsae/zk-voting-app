@@ -33,18 +33,18 @@ const Home: NextPage = () => {
 
   return (
     <>
-      <div className="flex items-start flex-col grow pt-10 w-full">
-        <div className="px-5 w-full max-w-7xl mx-auto">
+      <div className="flex items-start flex-col grow pt-6 w-full">
+        <div className="px-4 sm:px-5 w-full max-w-7xl mx-auto">
           <h1 className="text-center">
-            <span className="block text-4xl font-bold">Anoymous voting</span>
+            <span className="block text-3xl font-bold tracking-tight">Anonymous voting</span>
           </h1>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
-            <div className="lg:col-span-7 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
+            <div className="lg:col-span-5 space-y-4">
               <VotingStats />
               <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leafEvents as any[]} />
               <LeafEventsList leafEvents={leafEvents || []} />
             </div>
-            <div className="lg:col-span-5 space-y-6">
+            <div className="lg:col-span-7 space-y-4">
               <CreateCommitment leafEvents={leafEvents || []} />
               <VoteChoice />
               <GenerateProof leafEvents={leafEvents || []} />

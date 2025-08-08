@@ -97,10 +97,16 @@ export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-5">
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold">Step 3 — Generate ZK proof</h2>
+        <p className="text-sm opacity-70">
+          Prove membership in the Merkle tree and your vote without revealing identity.
+        </p>
+      </div>
       {/* <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leafEvents as any[]} /> */}
-      <div className="flex flex-col gap-3">
-        <div className="space-y-2 p-3 rounded border border-base-300">
+      <div className="flex flex-col gap-4">
+        <div className="space-y-2 p-4 rounded-lg border border-base-300">
           <div className="flex items-center justify-between">
             <span className="font-semibold">Optional: Paste or enter commitment inputs</span>
             <button
@@ -172,22 +178,29 @@ export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
               min={0}
             />
           </div>
-          <div className="text-xs text-gray-500">If left empty, stored commitment values will be used.</div>
+          <div className="text-xs opacity-70">If left empty, stored commitment values will be used.</div>
         </div>
 
-        <button type="button" className="btn btn-primary" onClick={getCircuitDataAndGenerateProof} disabled={isLoading}>
-          {isLoading ? "Generating Proof..." : "Generate Proof"}
-        </button>
-        <button
-          className="btn btn-primary"
-          type="button"
-          onClick={() => {
-            console.log("Generated Proof:", proofData?.proof);
-            console.log("Public Inputs:", proofData?.publicInputs[2].toString());
-          }}
-        >
-          Console Log Proof
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={getCircuitDataAndGenerateProof}
+            disabled={isLoading}
+          >
+            {isLoading ? "Generating proof..." : "Generate proof"}
+          </button>
+          <button
+            className="btn btn-ghost"
+            type="button"
+            onClick={() => {
+              console.log("Generated Proof:", proofData?.proof);
+              console.log("Public Inputs:", proofData?.publicInputs[2].toString());
+            }}
+          >
+            Console log proof
+          </button>
+        </div>
 
         {/* Export / Import Proof JSON */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
