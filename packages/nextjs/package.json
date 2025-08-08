@@ -31,6 +31,7 @@
     "next": "~15.2.3",
     "next-nprogress-bar": "~2.3.13",
     "next-themes": "~0.3.0",
+    "permissionless": "^0.2.0",
     "poseidon-lite": "^0.3.0",
     "qrcode.react": "~4.0.1",
     "react": "~19.0.0",

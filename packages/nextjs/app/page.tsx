@@ -2,32 +2,56 @@
 
 import { CreateCommitment } from "./_components/CreateCommitment";
 import { GenerateProof } from "./_components/GenerateProof";
+import { LeafEventsList } from "./_components/LeafEventsList";
 import { VoteChoice } from "./_components/VoteChoice";
 import { VoteWithBurnerHardhat } from "./_components/VoteWithBurnerHardhat";
+import { VoteWithBurnerPaymaster } from "./_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "./_components/VotingStats";
+import { BLOCK_NUMBER } from "./_components/constants";
 import type { NextPage } from "next";
-import { useAccount } from "wagmi";
-import { Address } from "~~/components/scaffold-eth";
+import MerkleTreeData from "~~/app/_components/MerkleTreeData";
+import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
-  const { address: connectedAddress } = useAccount();
+  const { data: leafEvents } = useScaffoldEventHistory({
+    contractName: "IncrementalMerkleTree",
+    eventName: "NewLeaf",
+    fromBlock: BLOCK_NUMBER,
+    watch: true,
+    enabled: true,
+  });
+
+  const { data: treeData } = useScaffoldReadContract({
+    contractName: "IncrementalMerkleTree",
+    functionName: "tree",
+  });
+
+  const { data: root } = useScaffoldReadContract({
+    contractName: "IncrementalMerkleTree",
+    functionName: "getRoot",
+  });
 
   return (
     <>
-      <div className="flex items-center flex-col grow pt-10">
-        <div className="px-5">
+      <div className="flex items-start flex-col grow pt-10 w-full">
+        <div className="px-5 w-full max-w-7xl mx-auto">
           <h1 className="text-center">
             <span className="block text-4xl font-bold">Anoymous voting</span>
           </h1>
-          <div className="flex justify-center items-center space-x-2 flex-col">
-            <p className="my-2 font-medium">Connected Address:</p>
-            <Address address={connectedAddress} />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
+            <div className="lg:col-span-7 space-y-6">
+              <VotingStats />
+              <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leafEvents as any[]} />
+              <LeafEventsList leafEvents={leafEvents || []} />
+            </div>
+            <div className="lg:col-span-5 space-y-6">
+              <CreateCommitment leafEvents={leafEvents || []} />
+              <VoteChoice />
+              <GenerateProof leafEvents={leafEvents || []} />
+              <VoteWithBurnerPaymaster />
+              <VoteWithBurnerHardhat />
+            </div>
           </div>
-          <VotingStats />
-          <VoteChoice />
-          <CreateCommitment />
-          <GenerateProof />
-          <VoteWithBurnerHardhat />
         </div>
       </div>
     </>

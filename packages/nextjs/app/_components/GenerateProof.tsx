@@ -7,25 +7,28 @@ import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
-import { LeafEventsList } from "~~/app/_components/LeafEventsList";
-import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
+import { notification } from "~~/utils/scaffold-eth";
 
-export const GenerateProof = () => {
+interface CreateCommitmentProps {
+  leafEvents?: any[];
+}
+
+export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
   const [, setCircuitData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { commitmentData, setProofData, proofData, voteChoice } = useGlobalState();
+  const [proofJsonText, setProofJsonText] = useState<string>("");
+  const [importJsonText, setImportJsonText] = useState<string>("");
+  const [importJsonError, setImportJsonError] = useState<string>("");
 
-  // const generateBurnerWallet = () => {
-  //   const wallet = ethers.Wallet.createRandom();
-  //   setBurnerWallet(wallet);
-  //   return wallet;
-  // };
-  // const [statementText, setStatementText] = useState("I have proven knowledge of my secret commitment!");
-
-  // const { writeContractAsync: writeYourContractAsync } = useScaffoldWriteContract({
-  //   contractName: "IncrementalMerkleTree",
-  // });
+  // Optional user-provided overrides for commitment data
+  const [nullifierInput, setNullifierInput] = useState<string>("");
+  const [secretInput, setSecretInput] = useState<string>("");
+  const [indexInput, setIndexInput] = useState<string>("");
+  const [jsonInput, setJsonInput] = useState<string>("");
+  const [jsonError, setJsonError] = useState<string>("");
 
   const { data: treeData } = useScaffoldReadContract({
     contractName: "IncrementalMerkleTree",
@@ -35,14 +38,6 @@ export const GenerateProof = () => {
   const { data: root } = useScaffoldReadContract({
     contractName: "IncrementalMerkleTree",
     functionName: "getRoot",
-  });
-
-  const { data: leafEvents } = useScaffoldEventHistory({
-    contractName: "IncrementalMerkleTree",
-    eventName: "NewLeaf",
-    fromBlock: 0n,
-    watch: true,
-    enabled: true,
   });
 
   const getCircuitDataAndGenerateProof = async () => {
@@ -57,22 +52,32 @@ export const GenerateProof = () => {
       setCircuitData(data);
       console.log("Circuit data:", data);
 
-      // Then generate proof with the fetched circuit data
-      if (!commitmentData || commitmentData.index === undefined) {
-        throw new Error("Please generate and insert a commitment first");
-      }
+      // Determine effective values: prefer user input, else fall back to stored commitmentData
+      const effectiveNullifier = (nullifierInput?.trim() || commitmentData?.nullifier)?.trim();
+      const effectiveSecret = (secretInput?.trim() || commitmentData?.secret)?.trim();
+      const effectiveIndex = indexInput?.trim() !== "" ? Number(indexInput) : commitmentData?.index;
 
       if (voteChoice === null) {
         throw new Error("Please select your vote (Yes/No) first");
+      }
+
+      if (!leafEvents || leafEvents.length === 0) {
+        throw new Error("There are no commitments in the tree yet. Please insert a commitment first.");
+      }
+
+      if (!effectiveNullifier || !effectiveSecret || effectiveIndex === undefined) {
+        throw new Error(
+          "Missing commitment inputs. Paste your saved data or ensure you have generated & inserted a commitment.",
+        );
       }
 
       const generatedProof = await generateProof(
         root as bigint,
         voteChoice,
         Number(treeData?.[1] || 0),
-        commitmentData.nullifier,
-        commitmentData.secret,
-        commitmentData.index,
+        effectiveNullifier,
+        effectiveSecret,
+        effectiveIndex as number,
         leafEvents as any,
         data,
       );
@@ -80,43 +85,96 @@ export const GenerateProof = () => {
         proof: generatedProof.proof,
         publicInputs: generatedProof.publicInputs,
       });
+      // Build exportable JSON after setting state
+      const exportable = buildExportableProofJSON(generatedProof.proof, generatedProof.publicInputs);
+      setProofJsonText(JSON.stringify(exportable, null, 2));
     } catch (error) {
       console.error("Error in getCircuitDataAndGenerateProof:", error);
+      notification.error((error as Error).message || "Failed to generate proof");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="card bg-base-200 shadow-xl p-6 mb-6">
-        <h2 className="card-title text-xl mb-4">Merkle Tree Data</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="stat bg-base-100 rounded-box p-4">
-            <div className="stat-title">Size</div>
-            <div className="stat-value text-primary">{treeData?.[0]?.toString() || "0"}</div>
+    <div className="flex flex-col gap-4">
+      {/* <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leafEvents as any[]} /> */}
+      <div className="flex flex-col gap-3">
+        <div className="space-y-2 p-3 rounded border border-base-300">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">Optional: Paste or enter commitment inputs</span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              onClick={() => {
+                setNullifierInput("");
+                setSecretInput("");
+                setIndexInput("");
+                setJsonInput("");
+                setJsonError("");
+              }}
+            >
+              Clear
+            </button>
           </div>
-          <div className="stat bg-base-100 rounded-box p-4">
-            <div className="stat-title">Depth</div>
-            <div className="stat-value text-secondary">{treeData?.[1]?.toString() || "0"}</div>
+
+          <textarea
+            className="textarea textarea-bordered textarea-xs w-full text-xs font-mono"
+            rows={3}
+            placeholder='Paste JSON like: {"nullifier":"0x...","secret":"0x...","index":0}'
+            value={jsonInput}
+            onChange={e => setJsonInput(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setJsonError("");
+                try {
+                  const parsed = JSON.parse(jsonInput || "{}");
+                  if (parsed.nullifier) setNullifierInput(String(parsed.nullifier));
+                  if (parsed.secret) setSecretInput(String(parsed.secret));
+                  if (parsed.index !== undefined && parsed.index !== null) setIndexInput(String(parsed.index));
+                } catch {
+                  setJsonError("Invalid JSON format");
+                }
+              }}
+            >
+              Load from JSON
+            </button>
+            {jsonError && <span className="text-error text-sm">{jsonError}</span>}
           </div>
-          <div className="stat bg-base-100 rounded-box p-4">
-            <div className="stat-title">Root</div>
-            <div className="stat-value text-accent break-all text-sm">
-              {root ? `${root.toString().slice(0, 10)}...${root.toString().slice(-8)}` : "Not available"}
-            </div>
-            {root && (
-              <div
-                className="stat-desc mt-1 cursor-pointer hover:text-accent"
-                onClick={() => navigator.clipboard.writeText(root.toString())}
-              >
-                Click to copy full root
-              </div>
-            )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input
+              type="text"
+              className="input input-bordered input-xs font-mono"
+              placeholder={commitmentData?.nullifier || "nullifier (bytes32)"}
+              value={nullifierInput}
+              onChange={e => setNullifierInput(e.target.value)}
+            />
+            <input
+              type="text"
+              className="input input-bordered input-xs font-mono"
+              placeholder={commitmentData?.secret || "secret (bytes32)"}
+              value={secretInput}
+              onChange={e => setSecretInput(e.target.value)}
+            />
+            <input
+              type="number"
+              className="input input-bordered input-xs"
+              placeholder={
+                commitmentData?.index !== undefined ? String(commitmentData?.index) : "index (leaf position)"
+              }
+              value={indexInput}
+              onChange={e => setIndexInput(e.target.value)}
+              min={0}
+            />
           </div>
+          <div className="text-xs text-gray-500">If left empty, stored commitment values will be used.</div>
         </div>
-      </div>
-      <div className="flex flex-col gap-2">
+
         <button type="button" className="btn btn-primary" onClick={getCircuitDataAndGenerateProof} disabled={isLoading}>
           {isLoading ? "Generating Proof..." : "Generate Proof"}
         </button>
@@ -130,36 +188,88 @@ export const GenerateProof = () => {
         >
           Console Log Proof
         </button>
-        <h2 className="card-title text-xl mb-4">Vote with DIFFERENT Address</h2>
-        {/* <button
-          className="btn btn-primary"
-          disabled={!proof || !publicInputs}
-          onClick={async () => {
-            try {
-              if (!proof || !publicInputs) {
-                console.error("Please generate proof first");
-                return;
-              }
 
-              await writeYourContractAsync({
-                functionName: "setStatement",
-                args: [
-                  uint8ArrayToHexString(proof as Uint8Array),
-                  publicInputs[0], // _root
-                  publicInputs[1], // _nullifierHash
-                  publicInputs[2], // _vote
-                  publicInputs[3], // _depth
-                ],
-              });
-            } catch (e) {
-              console.error("Error setting statement:", e);
-            }
-          }}
-        >
-          Vote
-        </button> */}
+        {/* Export / Import Proof JSON */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Export Proof JSON</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={() => {
+                  if (proofData) {
+                    const exportable = buildExportableProofJSON(proofData.proof, proofData.publicInputs);
+                    const text = JSON.stringify(exportable, null, 2);
+                    setProofJsonText(text);
+                    navigator.clipboard
+                      .writeText(text)
+                      .then(() => notification.success("Proof JSON copied to clipboard"))
+                      .catch(() => notification.error("Failed to copy. You can copy manually."));
+                  } else {
+                    notification.error("No proof found. Generate a proof first.");
+                  }
+                }}
+              >
+                Copy JSON
+              </button>
+            </div>
+            <textarea
+              className="textarea textarea-bordered textarea-xs w-full text-xs font-mono"
+              rows={4}
+              placeholder="Generated proof JSON will appear here after you generate a proof."
+              value={proofJsonText}
+              onChange={e => setProofJsonText(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">Import Proof JSON</span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => {
+                  setImportJsonText("");
+                  setImportJsonError("");
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <textarea
+              className="textarea textarea-bordered textarea-xs w-full text-xs font-mono"
+              rows={4}
+              placeholder='Paste JSON like: {"schema":"zk-voting-proof@1","proofHex":"0x...","publicInputs":["0x..", "0x..", true, 3]}'
+              value={importJsonText}
+              onChange={e => setImportJsonText(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  setImportJsonError("");
+                  try {
+                    const parsed = JSON.parse(importJsonText || "{}");
+                    if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+                    if (!parsed.proofHex || !parsed.publicInputs) throw new Error("Missing fields in JSON");
+                    const proofBytes = hexToUint8Array(parsed.proofHex as string);
+                    const publicInputsHex = normalizePublicInputsToHex32(parsed.publicInputs as any[]);
+                    setProofData({ proof: proofBytes, publicInputs: publicInputsHex });
+                    notification.success("Proof loaded into app state");
+                  } catch (err) {
+                    setImportJsonError((err as Error).message || "Invalid proof JSON");
+                  }
+                }}
+              >
+                Load Proof JSON
+              </button>
+              {importJsonError && <span className="text-error text-sm">{importJsonError}</span>}
+            </div>
+          </div>
+        </div>
       </div>
-      <LeafEventsList leafEvents={leafEvents || []} />
     </div>
   );
 };
@@ -237,4 +347,62 @@ const generateProof = async (
     console.log(error);
     throw error;
   }
+};
+
+// Helpers
+const uint8ArrayToHexString = (buffer: Uint8Array): `0x${string}` => {
+  const hex: string[] = [];
+  buffer.forEach(i => {
+    let h = i.toString(16);
+    if (h.length % 2) h = "0" + h;
+    hex.push(h);
+  });
+  return `0x${hex.join("")}`;
+};
+
+const hexToUint8Array = (hexString: string): Uint8Array => {
+  const normalized = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
+  if (normalized.length % 2 !== 0) throw new Error("Invalid hex length");
+  const bytes = new Uint8Array(normalized.length / 2);
+  for (let i = 0; i < normalized.length; i += 2) {
+    bytes[i / 2] = parseInt(normalized.slice(i, i + 2), 16);
+  }
+  return bytes;
+};
+
+const toBytes32Hex = (value: any): `0x${string}` => {
+  // If already a 0x-prefixed hex, normalize padding
+  if (typeof value === "string" && value.startsWith("0x")) {
+    const hex = value.slice(2);
+    if (hex.length > 64) throw new Error("Hex value too long for bytes32");
+    return `0x${hex.padStart(64, "0")}`;
+  }
+  if (typeof value === "boolean") {
+    return `0x${(value ? 1n : 0n).toString(16).padStart(64, "0")}`;
+  }
+  if (typeof value === "bigint") {
+    return `0x${value.toString(16).padStart(64, "0")}`;
+  }
+  if (typeof value === "number") {
+    return `0x${BigInt(value).toString(16).padStart(64, "0")}`;
+  }
+  if (typeof value === "string") {
+    // decimal string
+    const asBig = BigInt(value);
+    return `0x${asBig.toString(16).padStart(64, "0")}`;
+  }
+  throw new Error("Unsupported public input type");
+};
+
+const normalizePublicInputsToHex32 = (inputs: any[]): `0x${string}`[] => {
+  return inputs.map(toBytes32Hex);
+};
+
+const buildExportableProofJSON = (proof: Uint8Array, publicInputs: any[]) => {
+  const inputsHex = normalizePublicInputsToHex32(publicInputs);
+  return {
+    schema: "zk-voting-proof@1",
+    proofHex: uint8ArrayToHexString(proof),
+    publicInputs: inputsHex,
+  };
 };

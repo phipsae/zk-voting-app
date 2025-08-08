@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
-import { useScaffoldEventHistory, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 
 interface CommitmentData {
@@ -14,18 +14,15 @@ interface CommitmentData {
   encoded: string;
 }
 
-export const CreateCommitment = () => {
+interface CreateCommitmentProps {
+  leafEvents?: any[];
+}
+
+export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
   const [isInserted, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
-
-  const { data: leafEvents } = useScaffoldEventHistory({
-    contractName: "IncrementalMerkleTree",
-    eventName: "NewLeaf",
-    fromBlock: 0n,
-    watch: true,
-  });
 
   const { writeContractAsync: writeIncrementalMerkleTreeAsync } = useScaffoldWriteContract({
     contractName: "IncrementalMerkleTree",
@@ -74,7 +71,8 @@ export const CreateCommitment = () => {
 
   return (
     <div className="flex flex-col items-center space-y-6 p-6 bg-base-100 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold text-center">ZK Commitment Generator</h2>
+      <h2 className="text-2xl font-bold text-center">Register for voting</h2>
+      <p className="text-sm text-center">ZK Commitment Generator</p>
 
       <div className="flex flex-col space-y-4">
         <button
@@ -135,18 +133,6 @@ export const CreateCommitment = () => {
             <div className="bg-base-200 p-4 rounded-lg">
               <h4 className="font-semibold text-sm text-gray-600 mb-2">Secret:</h4>
               <code className="text-xs break-all bg-base-300 p-2 rounded block">{commitmentData.secret}</code>
-            </div>
-
-            <div className="bg-base-200 p-4 rounded-lg">
-              <h4 className="font-semibold text-sm text-gray-600 mb-2">Index:</h4>
-              <code className="text-xs break-all bg-base-300 p-2 rounded block">
-                {commitmentData.index ?? "Not inserted yet"}
-              </code>
-            </div>
-
-            <div className="bg-base-200 p-4 rounded-lg">
-              <h4 className="font-semibold text-sm text-gray-600 mb-2">Encoded Data:</h4>
-              <code className="text-xs break-all bg-base-300 p-2 rounded block">{commitmentData.encoded}</code>
             </div>
           </div>
 

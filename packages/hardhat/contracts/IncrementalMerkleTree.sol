@@ -19,13 +19,19 @@ contract IncrementalMerkleTree {
 
     LeanIMTData public tree;
     // TODO: change to question
-    string public statement = "How is the vibe?";
+    string public question = "How is the vibe?";
     uint256 public yesVotes;
     uint256 public noVotes;
 
     event NewLeaf(uint256 index, uint256 value);
-    //  TODO: add address from sender address to show that not the same person who registered
-    event VoteCast(bytes32 indexed nullifierHash, bool vote, uint256 timestamp, uint256 totalYes, uint256 totalNo);
+    event VoteCast(
+        bytes32 indexed nullifierHash,
+        address indexed voter,
+        bool vote,
+        uint256 timestamp,
+        uint256 totalYes,
+        uint256 totalNo
+    );
 
     error IncrementalMerkleTree__CommitmentAlreadyAdded(uint256 commitment);
     error IncrementalMerkleTree__NullifierHashAlreadyUsed(bytes32 nullifierHash);
@@ -45,9 +51,7 @@ contract IncrementalMerkleTree {
     }
 
     // TODO: change to vote
-    function setStatement(bytes memory _proof, bytes32 _root, bytes32 _nullifierHash, bytes32 _vote, bytes32 _depth)
-        public
-    {
+    function vote(bytes memory _proof, bytes32 _root, bytes32 _nullifierHash, bytes32 _vote, bytes32 _depth) public {
         if (s_nullifierHashes[_nullifierHash]) {
             revert IncrementalMerkleTree__NullifierHashAlreadyUsed(_nullifierHash);
         }
@@ -69,7 +73,7 @@ contract IncrementalMerkleTree {
             noVotes++;
         }
 
-        emit VoteCast(_nullifierHash, _vote == bytes32(uint256(1)), block.timestamp, yesVotes, noVotes);
+        emit VoteCast(_nullifierHash, msg.sender, _vote == bytes32(uint256(1)), block.timestamp, yesVotes, noVotes);
     }
 
     // getters

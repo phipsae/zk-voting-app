@@ -3,7 +3,7 @@ import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 export const VotingStats = () => {
   const { data: statement } = useScaffoldReadContract({
     contractName: "IncrementalMerkleTree",
-    functionName: "statement",
+    functionName: "question",
   });
 
   const { data: yesVotes } = useScaffoldReadContract({

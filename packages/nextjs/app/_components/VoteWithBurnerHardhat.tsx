@@ -30,6 +30,43 @@ export const VoteWithBurnerHardhat = () => {
     });
     return `0x${hex.join("")}`;
   };
+  const hexToUint8Array = (hexString: string): Uint8Array => {
+    const normalized = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
+    if (normalized.length % 2 !== 0) throw new Error("Invalid hex length");
+    const bytes = new Uint8Array(normalized.length / 2);
+    for (let i = 0; i < normalized.length; i += 2) {
+      bytes[i / 2] = parseInt(normalized.slice(i, i + 2), 16);
+    }
+    return bytes;
+  };
+
+  const toBytes32Hex = (value: any): `0x${string}` => {
+    if (typeof value === "string" && value.startsWith("0x")) {
+      const hex = value.slice(2);
+      if (hex.length > 64) throw new Error("Hex value too long for bytes32");
+      return `0x${hex.padStart(64, "0")}`;
+    }
+    if (typeof value === "boolean") {
+      return `0x${(value ? 1n : 0n).toString(16).padStart(64, "0")}`;
+    }
+    if (typeof value === "bigint") {
+      return `0x${value.toString(16).padStart(64, "0")}`;
+    }
+    if (typeof value === "number") {
+      return `0x${BigInt(value).toString(16).padStart(64, "0")}`;
+    }
+    if (typeof value === "string") {
+      const asBig = BigInt(value);
+      return `0x${asBig.toString(16).padStart(64, "0")}`;
+    }
+    throw new Error("Unsupported public input type");
+  };
+
+  const normalizePublicInputsToHex32 = (inputs: any[]): `0x${string}`[] => inputs.map(toBytes32Hex);
+
+  const [importJsonText, setImportJsonText] = useState<string>("");
+  const [importJsonError, setImportJsonError] = useState<string>("");
+
   return (
     <div className="flex flex-col gap-4 p-4 bg-base-200 rounded-lg">
       <h2 className="card-title text-xl">Vote with Burner Wallet</h2>
@@ -70,10 +107,10 @@ export const VoteWithBurnerHardhat = () => {
             if (!contractInfo) throw new Error("Contract not found");
 
             // Create contract instance with burner wallet
-            const contract = new Contract(contractInfo.address, contractInfo.abi, wallet.connect(provider));
+            const contract = new Contract(contractInfo.address, contractInfo.abi as any, wallet.connect(provider));
 
             // Call the vote function directly with the burner wallet
-            const tx = await contract.setStatement(
+            const tx = await contract.vote(
               uint8ArrayToHexString(proofData.proof),
               proofData.publicInputs[0], // _root
               proofData.publicInputs[1], // _nullifierHash
@@ -104,6 +141,52 @@ export const VoteWithBurnerHardhat = () => {
           <span>Error casting vote. Please try again.</span>
         </div>
       )}
+
+      {/* Import Proof JSON */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">Import Proof JSON</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={() => {
+              setImportJsonText("");
+              setImportJsonError("");
+            }}
+          >
+            Clear
+          </button>
+        </div>
+        <textarea
+          className="textarea textarea-bordered textarea-xs w-full text-xs font-mono"
+          rows={3}
+          placeholder='Paste JSON like: {"schema":"zk-voting-proof@1","proofHex":"0x...","publicInputs":["0x..", "0x..", true, 3]}'
+          value={importJsonText}
+          onChange={e => setImportJsonText(e.target.value)}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setImportJsonError("");
+              try {
+                const parsed = JSON.parse(importJsonText || "{}");
+                if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+                if (!parsed.proofHex || !parsed.publicInputs) throw new Error("Missing fields in JSON");
+                const proofBytes = hexToUint8Array(parsed.proofHex as string);
+                const publicInputs = normalizePublicInputsToHex32(parsed.publicInputs as any[]);
+                useGlobalState.getState().setProofData({ proof: proofBytes, publicInputs });
+              } catch (err) {
+                setImportJsonError((err as Error).message || "Invalid proof JSON");
+              }
+            }}
+          >
+            Load Proof JSON
+          </button>
+          {importJsonError && <span className="text-error text-sm">{importJsonError}</span>}
+        </div>
+      </div>
     </div>
   );
 };

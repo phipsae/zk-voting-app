@@ -1,23 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { Contract, HDNodeWallet, JsonRpcProvider, Wallet, parseEther } from "ethers";
+import { createSmartAccountClient } from "permissionless";
+import { toSafeSmartAccount } from "permissionless/accounts";
+import { createPimlicoClient } from "permissionless/clients/pimlico";
+import { createPublicClient, encodeFunctionData, http } from "viem";
+import { EntryPointVersion, entryPoint07Address } from "viem/account-abstraction";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { baseSepolia } from "viem/chains";
 import { Address } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 
-export const VoteWithBurnerHardhat = () => {
-  const [burnerWallet, setBurnerWallet] = useState<HDNodeWallet | null>(null);
+// This would come from your environment variables in production
+const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
+const pimlicoUrl = `https://api.pimlico.io/v2/${baseSepolia.id}/rpc?apikey=${apiKey}`;
+
+const pimlicoClient = createPimlicoClient({
+  chain: baseSepolia,
+  transport: http(pimlicoUrl),
+  entryPoint: {
+    address: entryPoint07Address,
+    version: "0.7" as EntryPointVersion,
+  },
+});
+
+export const VoteWithBurnerPaymaster = () => {
+  const [smartAccount, setSmartAccount] = useState<`0x${string}` | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const { proofData } = useGlobalState();
+  const [importJsonText, setImportJsonText] = useState<string>("");
+  const [importJsonError, setImportJsonError] = useState<string>("");
 
   const { data: contractInfo } = useDeployedContractInfo({ contractName: "IncrementalMerkleTree" });
-
-  const generateBurnerWallet = () => {
-    const wallet = Wallet.createRandom();
-    setBurnerWallet(wallet);
-    return wallet;
-  };
 
   const uint8ArrayToHexString = (buffer: Uint8Array): `0x${string}` => {
     const hex: string[] = [];
@@ -30,20 +45,84 @@ export const VoteWithBurnerHardhat = () => {
     });
     return `0x${hex.join("")}`;
   };
+
+  const hexToUint8Array = (hexString: string): Uint8Array => {
+    const normalized = hexString.startsWith("0x") ? hexString.slice(2) : hexString;
+    if (normalized.length % 2 !== 0) throw new Error("Invalid hex length");
+    const bytes = new Uint8Array(normalized.length / 2);
+    for (let i = 0; i < normalized.length; i += 2) {
+      bytes[i / 2] = parseInt(normalized.slice(i, i + 2), 16);
+    }
+    return bytes;
+  };
+
+  const createSmartAccount = async () => {
+    try {
+      // Create a random private key for the smart account owner
+      const privateKey = generatePrivateKey();
+      const wallet = privateKeyToAccount(privateKey);
+
+      console.log("wallet", wallet.address);
+
+      const publicClient = createPublicClient({
+        chain: baseSepolia,
+        transport: http("https://sepolia.base.org"),
+      });
+
+      const account = await toSafeSmartAccount({
+        client: publicClient,
+        owners: [wallet],
+        version: "1.4.1",
+      });
+
+      const smartAccountClient = createSmartAccountClient({
+        account,
+        chain: baseSepolia,
+        bundlerTransport: http(pimlicoUrl),
+        paymaster: pimlicoClient,
+        userOperation: {
+          estimateFeesPerGas: async () => {
+            return (await pimlicoClient.getUserOperationGasPrice()).fast;
+          },
+        },
+      });
+
+      console.log("pimlicoClient", pimlicoClient);
+      console.log(`Smart account address: https://sepolia.basescan.io/address/${account.address}`);
+      console.log("smartAccountClient", smartAccountClient);
+      console.log("wallet", wallet);
+
+      setSmartAccount(account.address as `0x${string}`);
+      return { smartAccountClient };
+    } catch (error) {
+      console.error("Error creating smart account:", error);
+      throw error;
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4 bg-base-200 rounded-lg">
-      <h2 className="card-title text-xl">Vote with Burner Wallet</h2>
+      <h2 className="card-title text-xl">Vote with Gasless Transaction (ERC-4337)</h2>
 
-      {burnerWallet && (
+      {smartAccount && (
         <div className="flex items-center gap-2">
-          <span className="text-sm">Burner Wallet:</span>
-          <Address address={burnerWallet.address} />
+          <span className="text-sm">Smart Account:</span>
+          <Address address={smartAccount} />
         </div>
       )}
 
       <button
         className="btn btn-primary"
-        // disabled={!proofData || txStatus === "pending"}
+        onClick={() => {
+          console.log(smartAccount);
+        }}
+      >
+        Console log smart account
+      </button>
+
+      <button
+        className="btn btn-primary"
+        disabled={!proofData || txStatus === "pending"}
         onClick={async () => {
           try {
             if (!proofData) {
@@ -53,36 +132,44 @@ export const VoteWithBurnerHardhat = () => {
 
             setTxStatus("pending");
 
-            const wallet = burnerWallet || generateBurnerWallet();
-            const provider = new JsonRpcProvider("http://localhost:8545");
-
-            const balance = await provider.getBalance(wallet.address);
-
-            if (balance < parseEther("0.01")) {
-              const signer = await provider.getSigner();
-              // Send some ETH to the burner wallet for gas
-              await signer.sendTransaction({
-                to: wallet.address,
-                value: parseEther("0.01") - balance, // Only send what's needed
-              });
-            }
+            // Create or get existing smart account
+            const { smartAccountClient } = await createSmartAccount();
 
             if (!contractInfo) throw new Error("Contract not found");
 
-            // Create contract instance with burner wallet
-            const contract = new Contract(contractInfo.address, contractInfo.abi, wallet.connect(provider));
+            // Encode the vote function call
+            const callData = encodeFunctionData({
+              abi: contractInfo.abi,
+              functionName: "vote",
+              args: [
+                uint8ArrayToHexString(proofData.proof),
+                proofData.publicInputs[0], // _root
+                proofData.publicInputs[1], // _nullifierHash
+                proofData.publicInputs[2], // _vote
+                proofData.publicInputs[3], // _depth
+              ],
+            });
 
-            // Call the vote function directly with the burner wallet
-            const tx = await contract.setStatement(
-              uint8ArrayToHexString(proofData.proof),
-              proofData.publicInputs[0], // _root
-              proofData.publicInputs[1], // _nullifierHash
-              proofData.publicInputs[2], // _vote
-              proofData.publicInputs[3], // _depth
-            );
+            console.log("callData", callData);
+            console.log("smartAccountClient", smartAccountClient);
+            console.log("contractInfo address", contractInfo.address);
+            console.log("calling address", smartAccountClient.account.address);
 
-            await tx.wait();
+            // Create and send the user operation
+            const userOpHash = await smartAccountClient.sendTransaction({
+              to: contractInfo.address,
+              data: callData,
+              value: 0n,
+            });
 
+            console.log("User operation hash:", userOpHash);
+
+            // Wait for the user operation to be included
+            const receipt = await pimlicoClient.waitForUserOperationReceipt({
+              hash: userOpHash,
+            });
+
+            console.log("Transaction included:", receipt);
             setTxStatus("success");
           } catch (e) {
             console.error("Error voting:", e);
@@ -90,7 +177,7 @@ export const VoteWithBurnerHardhat = () => {
           }
         }}
       >
-        {txStatus === "pending" ? "Voting..." : "Vote with Burner Wallet"}
+        {txStatus === "pending" ? "Voting..." : "Vote Gasless with ERC-4337"}
       </button>
 
       {txStatus === "success" && (
@@ -104,6 +191,66 @@ export const VoteWithBurnerHardhat = () => {
           <span>Error casting vote. Please try again.</span>
         </div>
       )}
+
+      {/* Import Proof JSON */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">Import Proof JSON</span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={() => {
+              setImportJsonText("");
+              setImportJsonError("");
+            }}
+          >
+            Clear
+          </button>
+        </div>
+        <textarea
+          className="textarea textarea-bordered textarea-xs w-full text-xs font-mono"
+          rows={3}
+          placeholder='Paste JSON like: {"schema":"zk-voting-proof@1","proofHex":"0x...","publicInputs":["0x..", "0x..", true, 3]}'
+          value={importJsonText}
+          onChange={e => setImportJsonText(e.target.value)}
+        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setImportJsonError("");
+              try {
+                const parsed = JSON.parse(importJsonText || "{}");
+                if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+                if (!parsed.proofHex || !parsed.publicInputs) throw new Error("Missing fields in JSON");
+                const proofBytes = hexToUint8Array(parsed.proofHex as string);
+                const publicInputs = (parsed.publicInputs as any[]).map(v => {
+                  if (typeof v === "string" && v.startsWith("0x")) {
+                    return v as `0x${string}`;
+                  }
+                  if (typeof v === "boolean") {
+                    return `0x${(v ? 1n : 0n).toString(16).padStart(64, "0")}` as `0x${string}`;
+                  }
+                  if (typeof v === "number") {
+                    return `0x${BigInt(v).toString(16).padStart(64, "0")}` as `0x${string}`;
+                  }
+                  if (typeof v === "string") {
+                    return `0x${BigInt(v).toString(16).padStart(64, "0")}` as `0x${string}`;
+                  }
+                  throw new Error("Unsupported public input type");
+                });
+                useGlobalState.getState().setProofData({ proof: proofBytes, publicInputs });
+              } catch (err) {
+                setImportJsonError((err as Error).message || "Invalid proof JSON");
+              }
+            }}
+          >
+            Load Proof JSON
+          </button>
+          {importJsonError && <span className="text-error text-sm">{importJsonError}</span>}
+        </div>
+      </div>
     </div>
   );
 };

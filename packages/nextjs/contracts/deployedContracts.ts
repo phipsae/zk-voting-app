@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     HonkVerifier: {
-      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
       abi: [
         {
           inputs: [],
@@ -55,10 +55,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 3,
+      deployedOnBlock: 24,
     },
     IncrementalMerkleTree: {
-      address: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      address: "0x9A676e781A523b5d0C0e43731313A708CB607508",
       abi: [
         {
           inputs: [
@@ -125,6 +125,12 @@ const deployedContracts = {
               internalType: "bytes32",
               name: "nullifierHash",
               type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "voter",
+              type: "address",
             },
             {
               indexed: false,
@@ -271,6 +277,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "question",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "uint256",
@@ -309,6 +328,24 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "tree",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "size",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "depth",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "bytes",
@@ -336,40 +373,9 @@ const deployedContracts = {
               type: "bytes32",
             },
           ],
-          name: "setStatement",
+          name: "vote",
           outputs: [],
           stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "statement",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "tree",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "size",
-              type: "uint256",
-            },
-            {
-              internalType: "uint256",
-              name: "depth",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
           type: "function",
         },
         {
@@ -387,10 +393,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 7,
+      deployedOnBlock: 28,
     },
     LeanIMT: {
-      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      address: "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
       abi: [
         {
           inputs: [],
@@ -419,10 +425,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 5,
+      deployedOnBlock: 26,
     },
     PoseidonT3: {
-      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      address: "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
       abi: [
         {
           inputs: [
@@ -445,7 +451,456 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 1,
+      deployedOnBlock: 22,
+    },
+  },
+  84532: {
+    HonkVerifier: {
+      address: "0xC33AB521137105c944C405ffAFa89cddDB73b87f",
+      abi: [
+        {
+          inputs: [],
+          name: "ProofLengthWrong",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "PublicInputsLengthWrong",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ShpleminiFailed",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "SumcheckFailed",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "proof",
+              type: "bytes",
+            },
+            {
+              internalType: "bytes32[]",
+              name: "publicInputs",
+              type: "bytes32[]",
+            },
+          ],
+          name: "verify",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 29439074,
+    },
+    IncrementalMerkleTree: {
+      address: "0x27FD58BeE68516EDA272C5368bCf981d95A5C972",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "contract IVerifier",
+              name: "_verifier",
+              type: "address",
+            },
+          ],
+          stateMutability: "nonpayable",
+          type: "constructor",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "commitment",
+              type: "uint256",
+            },
+          ],
+          name: "IncrementalMerkleTree__CommitmentAlreadyAdded",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "IncrementalMerkleTree__InvalidProof",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "nullifierHash",
+              type: "bytes32",
+            },
+          ],
+          name: "IncrementalMerkleTree__NullifierHashAlreadyUsed",
+          type: "error",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "index",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "value",
+              type: "uint256",
+            },
+          ],
+          name: "NewLeaf",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "bytes32",
+              name: "nullifierHash",
+              type: "bytes32",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "voter",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "bool",
+              name: "vote",
+              type: "bool",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "timestamp",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "totalYes",
+              type: "uint256",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "totalNo",
+              type: "uint256",
+            },
+          ],
+          name: "VoteCast",
+          type: "event",
+        },
+        {
+          inputs: [],
+          name: "getDepth",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "index",
+              type: "uint256",
+            },
+          ],
+          name: "getLeaf",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "index",
+              type: "uint256",
+            },
+          ],
+          name: "getNode",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getRoot",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getSize",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "i_verifier",
+          outputs: [
+            {
+              internalType: "contract IVerifier",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_commitment",
+              type: "uint256",
+            },
+          ],
+          name: "insert",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "noVotes",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "question",
+          outputs: [
+            {
+              internalType: "string",
+              name: "",
+              type: "string",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          name: "s_commitments",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          name: "s_nullifierHashes",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "tree",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "size",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "depth",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "bytes",
+              name: "_proof",
+              type: "bytes",
+            },
+            {
+              internalType: "bytes32",
+              name: "_root",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "_nullifierHash",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "_vote",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes32",
+              name: "_depth",
+              type: "bytes32",
+            },
+          ],
+          name: "vote",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "yesVotes",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 29439078,
+    },
+    LeanIMT: {
+      address: "0xcA1D179de5aeE03EF7D1F85e5E9EEF17505FacDc",
+      abi: [
+        {
+          inputs: [],
+          name: "LeafAlreadyExists",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "LeafCannotBeZero",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "LeafDoesNotExist",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "LeafGreaterThanSnarkScalarField",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "WrongSiblingNodes",
+          type: "error",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 29439075,
+    },
+    PoseidonT3: {
+      address: "0x1f5b9Bd499698D4eDca9c90DeA5f2Eb4a6eDE142",
+      abi: [
+        {
+          inputs: [
+            {
+              internalType: "uint256[2]",
+              name: "",
+              type: "uint256[2]",
+            },
+          ],
+          name: "hash",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 29439068,
     },
   },
 } as const;
