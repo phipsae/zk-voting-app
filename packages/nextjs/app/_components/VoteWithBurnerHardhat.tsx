@@ -11,7 +11,7 @@ export const VoteWithBurnerHardhat = () => {
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const { proofData } = useGlobalState();
 
-  const { data: contractInfo } = useDeployedContractInfo({ contractName: "IncrementalMerkleTree" });
+  const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
 
   const generateBurnerWallet = () => {
     const wallet = Wallet.createRandom();

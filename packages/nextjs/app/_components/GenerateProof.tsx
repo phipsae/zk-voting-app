@@ -31,12 +31,12 @@ export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
   const [jsonError, setJsonError] = useState<string>("");
 
   const { data: treeData } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "tree",
   });
 
   const { data: root } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "getRoot",
   });
 
@@ -319,7 +319,7 @@ const generateProof = async (
   const proofIndex = calculatedProof.index;
 
   // Pad siblings array to match circuit expectation (4 elements)
-  const lengthDiff = 4 - sibs.length;
+  const lengthDiff = 16 - sibs.length;
   for (let i = 0; i < lengthDiff; i++) {
     sibs.push("0");
   }

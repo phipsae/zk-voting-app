@@ -32,7 +32,7 @@ export const VoteWithBurnerPaymaster = () => {
   const [importJsonText, setImportJsonText] = useState<string>("");
   const [importJsonError, setImportJsonError] = useState<string>("");
 
-  const { data: contractInfo } = useDeployedContractInfo({ contractName: "IncrementalMerkleTree" });
+  const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
 
   const uint8ArrayToHexString = (buffer: Uint8Array): `0x${string}` => {
     const hex: string[] = [];

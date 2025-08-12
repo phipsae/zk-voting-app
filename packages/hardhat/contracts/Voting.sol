@@ -4,22 +4,24 @@ pragma solidity >=0.8.0 <0.9.0;
 import {LeanIMT, LeanIMTData} from "@zk-kit/lean-imt.sol/LeanIMT.sol";
 
 import {IVerifier} from "./Verifier.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract IncrementalMerkleTree {
+contract Voting is Ownable {
     using LeanIMT for LeanIMTData;
 
     uint256 constant MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     IVerifier public immutable i_verifier;
+    string public question;
 
     // so that not 2 times the same commitment can be inserted
     mapping(uint256 => bool) public s_commitments;
     // so that the proof cannot be replayed - and a person can only vote once
     mapping(bytes32 => bool) public s_nullifierHashes;
+    mapping(address => bool) public s_voters;
 
     LeanIMTData public tree;
     // TODO: change to question
-    string public question = "How is the vibe?";
     uint256 public yesVotes;
     uint256 public noVotes;
 
@@ -33,17 +35,26 @@ contract IncrementalMerkleTree {
         uint256 totalNo
     );
 
-    error IncrementalMerkleTree__CommitmentAlreadyAdded(uint256 commitment);
-    error IncrementalMerkleTree__NullifierHashAlreadyUsed(bytes32 nullifierHash);
-    error IncrementalMerkleTree__InvalidProof();
+    error Voting__CommitmentAlreadyAdded(uint256 commitment);
+    error Voting__NullifierHashAlreadyUsed(bytes32 nullifierHash);
+    error Voting__InvalidProof();
+    error Voting__NotAllowedToVote();
 
-    constructor(IVerifier _verifier) {
+    constructor(IVerifier _verifier, string memory _question) Ownable(msg.sender) {
         i_verifier = _verifier;
+        question = _question;
+    }
+
+    function addVoter(address _voter) public onlyOwner {
+        s_voters[_voter] = true;
     }
 
     function insert(uint256 _commitment) public {
+        if (!s_voters[msg.sender]) {
+            revert Voting__NotAllowedToVote();
+        }
         if (s_commitments[_commitment]) {
-            revert IncrementalMerkleTree__CommitmentAlreadyAdded(_commitment);
+            revert Voting__CommitmentAlreadyAdded(_commitment);
         }
         s_commitments[_commitment] = true;
         tree.insert(_commitment);
@@ -53,7 +64,7 @@ contract IncrementalMerkleTree {
     // TODO: change to vote
     function vote(bytes memory _proof, bytes32 _root, bytes32 _nullifierHash, bytes32 _vote, bytes32 _depth) public {
         if (s_nullifierHashes[_nullifierHash]) {
-            revert IncrementalMerkleTree__NullifierHashAlreadyUsed(_nullifierHash);
+            revert Voting__NullifierHashAlreadyUsed(_nullifierHash);
         }
         s_nullifierHashes[_nullifierHash] = true;
 
@@ -64,7 +75,7 @@ contract IncrementalMerkleTree {
         publicInputs[3] = _depth;
 
         if (!i_verifier.verify(_proof, publicInputs)) {
-            revert IncrementalMerkleTree__InvalidProof();
+            revert Voting__InvalidProof();
         }
 
         if (_vote == bytes32(uint256(1))) {

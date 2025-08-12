@@ -2,17 +2,17 @@ import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export const VotingStats = () => {
   const { data: statement } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "question",
   });
 
   const { data: yesVotes } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "yesVotes",
   });
 
   const { data: noVotes } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "noVotes",
   });
 

@@ -41,7 +41,7 @@ const Home: NextPage = () => {
   // When a new on-chain NewLeaf event is observed, invalidate the Ponder query
   // so the latest indexed data is fetched automatically.
   useScaffoldWatchContractEvent({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     eventName: "NewLeaf",
     onLogs: () => {
       queryClient.invalidateQueries({ queryKey: ["leavess"] });
@@ -66,12 +66,12 @@ const Home: NextPage = () => {
   }));
 
   const { data: treeData } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "tree",
   });
 
   const { data: root } = useScaffoldReadContract({
-    contractName: "IncrementalMerkleTree",
+    contractName: "Voting",
     functionName: "getRoot",
   });
 

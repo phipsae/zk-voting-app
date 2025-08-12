@@ -24,8 +24,8 @@ export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => 
   const [isInserted, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
 
-  const { writeContractAsync: writeIncrementalMerkleTreeAsync } = useScaffoldWriteContract({
-    contractName: "IncrementalMerkleTree",
+  const { writeContractAsync: writeVotingAsync } = useScaffoldWriteContract({
+    contractName: "Voting",
   });
 
   const handleGenerateCommitment = async () => {
@@ -50,7 +50,7 @@ export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => 
 
     setIsInserting(true);
     try {
-      await writeIncrementalMerkleTreeAsync({
+      await writeVotingAsync({
         functionName: "insert",
         args: [BigInt(commitmentData.commitment)],
       });
