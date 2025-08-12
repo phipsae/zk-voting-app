@@ -22,24 +22,26 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const poseidon3 = await deploy("PoseidonT3", {
-    from: deployer,
-    log: true,
-    autoMine: true,
-  });
-
   // const poseidon2 = await deploy("PoseidonT3", {
   //   from: deployer,
   //   log: true,
   //   autoMine: true,
   // });
 
-  const verifier = await deploy("HonkVerifier", {
+  // const verifier = await deploy("HonkVerifier", {
+  //   from: deployer,
+  //   log: true,
+  //   autoMine: true,
+  // });
+
+  // console.log("Verifier deployed to:", verifier.address);
+  const honkVerifierAddress = "0x063714E802d42BC93772792d9416d208ED6fa77a";
+
+  const poseidon3 = await deploy("PoseidonT3", {
     from: deployer,
     log: true,
     autoMine: true,
   });
-
   const leanIMT = await deploy("LeanIMT", {
     from: deployer,
     log: true,
@@ -53,7 +55,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   await deploy("IncrementalMerkleTree", {
     from: deployer,
     // Contract constructor arguments
-    args: [verifier.address],
+    args: [honkVerifierAddress],
     log: true,
     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
     // automatically mining the contract deployment transaction. There is no effect on live networks.
