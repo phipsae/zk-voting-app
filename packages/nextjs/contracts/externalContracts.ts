@@ -14,7 +14,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const externalContracts = {
   84532: {
     HonkVerifier: {
-      address: "0xC33AB521137105c944C405ffAFa89cddDB73b87f",
+      address: "0x471b0784517899d8465Ad7a1a31d238F8F95B6c9",
       abi: [
         {
           inputs: [],
@@ -62,10 +62,10 @@ const externalContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 29439074,
+      deployedOnBlock: 29581086,
     },
     IncrementalMerkleTree: {
-      address: "0x27FD58BeE68516EDA272C5368bCf981d95A5C972",
+      address: "0x55E513E0D71445B08E429D463DBD2571f1dE837A",
       abi: [
         {
           inputs: [
@@ -400,10 +400,10 @@ const externalContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 29439078,
+      deployedOnBlock: 29581090,
     },
     LeanIMT: {
-      address: "0xcA1D179de5aeE03EF7D1F85e5E9EEF17505FacDc",
+      address: "0x3212E6A22B8C018fc78204D185fF8bD715Ab0FFB",
       abi: [
         {
           inputs: [],
@@ -432,10 +432,10 @@ const externalContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 29439075,
+      deployedOnBlock: 29581087,
     },
     PoseidonT3: {
-      address: "0x1f5b9Bd499698D4eDca9c90DeA5f2Eb4a6eDE142",
+      address: "0x12961542E5Aa59541F2a7bFeF3F504A406AfC946",
       abi: [
         {
           inputs: [
@@ -458,7 +458,7 @@ const externalContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 29439068,
+      deployedOnBlock: 29581085,
     },
   },
 } as const;
