@@ -8,12 +8,12 @@ fn main(
     nullifier_hash: pub Field,
     vote: pub bool,
     depth: pub u32,
-    // // private inputs
+    // private inputs
     nullifier: Field,
     secret: Field,
-    // index of the leaf to prove
     index: Field,
-    siblings: [Field; 4],
+    // max of 2^16 leaves --> 65536 leaves
+    siblings: [Field; 16],
 ) {
     let commitment: Field = hash_2([nullifier, secret]);
 
@@ -27,19 +27,14 @@ fn main(
         }
     }
 
-    let index_bits: [u1; 4] = index.to_le_bits();
+    let index_bits: [u1; 16] = index.to_le_bits();
     assert(depth <= siblings.len());
 
     let computed_root = binary_merkle_root(hash_2, commitment, siblings_num, index_bits, siblings);
 
-    println("right - commitment");
-    println(commitment);
-    println("computed_root from function");
-    println(computed_root);
-
     assert(computed_root == root);
 
-    // just vote binding, to make sure the vote is bind to proof, prevent front running of the vote
+    // just vote binding, prevent front running
     let vote_field = vote as Field;
     assert((vote_field * vote_field) == vote_field);
 }
