@@ -7,12 +7,11 @@ import { VoteChoice } from "./_components/VoteChoice";
 import { VoteWithBurnerHardhat } from "./_components/VoteWithBurnerHardhat";
 import { VoteWithBurnerPaymaster } from "./_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "./_components/VotingStats";
-import { BLOCK_NUMBER } from "./_components/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import type { NextPage } from "next";
 import MerkleTreeData from "~~/app/_components/MerkleTreeData";
-import { useScaffoldEventHistory, useScaffoldReadContract, useScaffoldWatchContractEvent } from "~~/hooks/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWatchContractEvent } from "~~/hooks/scaffold-eth";
 
 type LeafEvent = {
   index: string;
@@ -38,13 +37,6 @@ const fetchLeaves = async () => {
 
 const Home: NextPage = () => {
   const queryClient = useQueryClient();
-  const { data: leafEvents } = useScaffoldEventHistory({
-    contractName: "IncrementalMerkleTree",
-    eventName: "NewLeaf",
-    fromBlock: BLOCK_NUMBER,
-    watch: true,
-    enabled: true,
-  });
 
   // When a new on-chain NewLeaf event is observed, invalidate the Ponder query
   // so the latest indexed data is fetched automatically.
@@ -90,24 +82,10 @@ const Home: NextPage = () => {
           <h1 className="text-center">
             <span className="block text-3xl font-bold tracking-tight">Anonymous voting</span>
           </h1>
-          <button
-            onClick={() => {
-              console.log((leavesData as any)?.leavess?.items?.length);
-            }}
-          >
-            Fetch Leaves
-          </button>
-          <button
-            onClick={() => {
-              console.log(leafEvents);
-            }}
-          >
-            Fetch Leaf Events
-          </button>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
             <div className="lg:col-span-5 space-y-4">
               <VotingStats />
-              <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leafEvents as any[]} />
+              <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leavesAsEvents as any[]} />
               <LeafEventsList leafEvents={leavesAsEvents} />
             </div>
             <div className="lg:col-span-7 space-y-4">
