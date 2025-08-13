@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UltraHonkBackend } from "@aztec/bb.js";
 // @ts-ignore
 import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
-import { useReadContract } from "wagmi";
-import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
+import { usePublicClient, useWatchContractEvent } from "wagmi";
+import { useScaffoldReadContract, useSelectedNetwork } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
 import { contracts } from "~~/utils/scaffold-eth/contract";
@@ -36,18 +36,73 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
   const selected = useSelectedNetwork();
   const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
 
-  const { data: treeData } = useReadContract({
+  const publicClient = usePublicClient({ chainId: selected.id });
+
+  // TODO: get events
+  const [leavesAsEvents, setLeavesAsEvents] = useState<any[]>([]);
+
+  const mergeAndDedupeEvents = (previous: any[], next: any[]) => {
+    const seen = new Set<string>();
+    const merged = [...previous, ...next];
+    const deduped = merged.filter(e => {
+      const key =
+        e?.transactionHash && e?.logIndex !== undefined
+          ? `${e.transactionHash}-${e.logIndex}`
+          : `logIndex-${e?.logIndex}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    // Sort by args.index descending (most recent/highest index first)
+    deduped.sort((a, b) => {
+      const ai = a?.args?.index as bigint | undefined;
+      const bi = b?.args?.index as bigint | undefined;
+      if (ai === undefined || bi === undefined) return 0;
+      if (ai === bi) return 0;
+      return ai < bi ? 1 : -1;
+    });
+    return deduped;
+  };
+
+  useEffect(() => {
+    const loadInitial = async () => {
+      if (!publicClient || !contractAddress) return;
+      const event = (votingAbi as any).find((x: any) => x.type === "event" && x.name === "NewLeaf");
+      const logs = await publicClient.getLogs({ address: contractAddress, event, fromBlock: 0n });
+      const mapped = logs.map(l => ({
+        args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
+        logIndex: Number((l as any).logIndex ?? 0),
+        transactionHash: (l as any).transactionHash,
+      }));
+      setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
+    };
+    void loadInitial();
+  }, [publicClient, contractAddress, votingAbi]);
+
+  useWatchContractEvent({
     address: contractAddress,
     abi: votingAbi,
-    functionName: "tree",
-    args: [],
+    eventName: "NewLeaf",
+    onLogs: logs => {
+      const mapped = logs.map(l => ({
+        args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
+        logIndex: Number((l as any).logIndex ?? 0),
+        transactionHash: (l as any).transactionHash,
+      }));
+      setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
+    },
   });
 
-  const { data: root } = useReadContract({
+  const { data: treeData } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "tree",
     address: contractAddress,
-    abi: votingAbi,
+  });
+
+  const { data: root } = useScaffoldReadContract({
+    contractName: "Voting",
     functionName: "getRoot",
-    args: [],
+    address: contractAddress,
   });
 
   const getCircuitDataAndGenerateProof = async () => {
@@ -88,7 +143,7 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
         effectiveNullifier,
         effectiveSecret,
         effectiveIndex as number,
-        leafEvents as any,
+        leavesAsEvents as any,
         data,
       );
       setProofData({
@@ -114,6 +169,8 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
           Prove membership in the Merkle tree and your vote without revealing identity.
         </p>
       </div>
+      <button onClick={() => console.log(leavesAsEvents)}>Log leavesAsEvents</button>
+      <button onClick={() => console.log(treeData)}>Log treeData</button>
       {/* <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leafEvents as any[]} /> */}
       <div className="flex flex-col gap-4">
         <div className="space-y-2 p-4 rounded-lg border border-base-300">

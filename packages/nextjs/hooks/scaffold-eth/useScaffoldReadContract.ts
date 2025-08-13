@@ -38,14 +38,14 @@ export const useScaffoldReadContract = <
     chainId: selectedNetwork.id as AllowedChainIds,
   });
 
-  const { query: queryOptions, watch, ...readContractConfig } = readConfig;
+  const { query: queryOptions, watch, address: addressOverride, ...readContractConfig } = readConfig as any;
   // set watch to true by default
   const defaultWatch = watch ?? true;
 
   const readContractHookRes = useReadContract({
     chainId: selectedNetwork.id,
     functionName,
-    address: deployedContract?.address,
+    address: addressOverride ?? deployedContract?.address,
     abi: deployedContract?.abi,
     args,
     ...(readContractConfig as any),

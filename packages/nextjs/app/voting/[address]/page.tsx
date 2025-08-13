@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+// import { useState } from "react";
 import { notFound, useParams } from "next/navigation";
 import { VoteChoice } from "../_components/VoteChoice";
-import { usePublicClient, useWatchContractEvent } from "wagmi";
+// import { usePublicClient } from "wagmi";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
 import { GenerateProof } from "~~/app/voting/_components/GenerateProof";
 import { LeafEventsList } from "~~/app/voting/_components/LeafEventsList";
@@ -11,8 +11,9 @@ import MerkleTreeData from "~~/app/voting/_components/MerkleTreeData";
 import { VoteWithBurnerHardhat } from "~~/app/voting/_components/VoteWithBurnerHardhat";
 import { VoteWithBurnerPaymaster } from "~~/app/voting/_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
-import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
-import { contracts } from "~~/utils/scaffold-eth/contract";
+import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+
+// import { contracts } from "~~/utils/scaffold-eth/contract";
 
 // type LeafEvent = {
 //   index: string;
@@ -22,65 +23,71 @@ import { contracts } from "~~/utils/scaffold-eth/contract";
 export default function VotingByAddressPage() {
   const params = useParams<{ address: `0x${string}` }>();
   const address = params?.address as `0x${string}` | undefined;
-  const selected = useSelectedNetwork();
-  const publicClient = usePublicClient({ chainId: selected.id });
+  // const selected = useSelectedNetwork();
+  // const publicClient = usePublicClient({ chainId: selected.id });
 
-  const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
+  // const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
 
   // No indexer: load historical logs once, then live-watch new events to append
-  const [leavesAsEvents, setLeavesAsEvents] = useState<any[]>([]);
+  // const [leavesAsEvents, setLeavesAsEvents] = useState<any[]>([]);
 
-  const mergeAndDedupeEvents = (previous: any[], next: any[]) => {
-    const seen = new Set<string>();
-    const merged = [...previous, ...next];
-    const deduped = merged.filter(e => {
-      const key =
-        e?.transactionHash && e?.logIndex !== undefined
-          ? `${e.transactionHash}-${e.logIndex}`
-          : `logIndex-${e?.logIndex}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    // Sort by args.index descending (most recent/highest index first)
-    deduped.sort((a, b) => {
-      const ai = a?.args?.index as bigint | undefined;
-      const bi = b?.args?.index as bigint | undefined;
-      if (ai === undefined || bi === undefined) return 0;
-      if (ai === bi) return 0;
-      return ai < bi ? 1 : -1;
-    });
-    return deduped;
-  };
-
-  useEffect(() => {
-    const loadInitial = async () => {
-      if (!publicClient || !address) return;
-      const event = (votingAbi as any).find((x: any) => x.type === "event" && x.name === "NewLeaf");
-      const logs = await publicClient.getLogs({ address, event, fromBlock: 0n });
-      const mapped = logs.map(l => ({
-        args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
-        logIndex: Number((l as any).logIndex ?? 0),
-        transactionHash: (l as any).transactionHash,
-      }));
-      setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
-    };
-    void loadInitial();
-  }, [publicClient, address, votingAbi]);
-
-  useWatchContractEvent({
-    address: address,
-    abi: votingAbi,
+  const leavesEvents = useScaffoldEventHistory({
+    contractName: "Voting",
     eventName: "NewLeaf",
-    onLogs: logs => {
-      const mapped = logs.map(l => ({
-        args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
-        logIndex: Number((l as any).logIndex ?? 0),
-        transactionHash: (l as any).transactionHash,
-      }));
-      setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
-    },
+    address: address,
   });
+
+  // const mergeAndDedupeEvents = (previous: any[], next: any[]) => {
+  //   const seen = new Set<string>();
+  //   const merged = [...previous, ...next];
+  //   const deduped = merged.filter(e => {
+  //     const key =
+  //       e?.transactionHash && e?.logIndex !== undefined
+  //         ? `${e.transactionHash}-${e.logIndex}`
+  //         : `logIndex-${e?.logIndex}`;
+  //     if (seen.has(key)) return false;
+  //     seen.add(key);
+  //     return true;
+  //   });
+  //   // Sort by args.index descending (most recent/highest index first)
+  //   deduped.sort((a, b) => {
+  //     const ai = a?.args?.index as bigint | undefined;
+  //     const bi = b?.args?.index as bigint | undefined;
+  //     if (ai === undefined || bi === undefined) return 0;
+  //     if (ai === bi) return 0;
+  //     return ai < bi ? 1 : -1;
+  //   });
+  //   return deduped;
+  // };
+
+  // useEffect(() => {
+  //   const loadInitial = async () => {
+  //     if (!publicClient || !address) return;
+  //     const event = (votingAbi as any).find((x: any) => x.type === "event" && x.name === "NewLeaf");
+  //     const logs = await publicClient.getLogs({ address, event, fromBlock: 0n });
+  //     const mapped = logs.map(l => ({
+  //       args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
+  //       logIndex: Number((l as any).logIndex ?? 0),
+  //       transactionHash: (l as any).transactionHash,
+  //     }));
+  //     setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
+  //   };
+  //   void loadInitial();
+  // }, [publicClient, address, votingAbi]);
+
+  // useWatchContractEvent({
+  //   address: address,
+  //   abi: votingAbi,
+  //   eventName: "NewLeaf",
+  //   onLogs: logs => {
+  //     const mapped = logs.map(l => ({
+  //       args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
+  //       logIndex: Number((l as any).logIndex ?? 0),
+  //       transactionHash: (l as any).transactionHash,
+  //     }));
+  //     setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
+  //   },
+  // });
 
   //   //    TODO: exchange with graphql for indexer
   //   const { data: leavesData } = useQuery({
@@ -110,6 +117,7 @@ export default function VotingByAddressPage() {
 
   return (
     <div className="flex items-start flex-col grow pt-6 w-full">
+      <button onClick={() => console.log(leavesEvents)}>Log leavesEvents</button>
       <div className="px-4 sm:px-5 w-full max-w-7xl mx-auto">
         <h1 className="text-center">
           <span className="block text-3xl font-bold tracking-tight">Voting</span>
@@ -117,13 +125,13 @@ export default function VotingByAddressPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
           <div className="lg:col-span-5 space-y-4">
             <VotingStats contractAddress={address} />
-            <MerkleTreeData contractAddress={address} leafEvents={leavesAsEvents as any[]} />
-            <LeafEventsList leafEvents={leavesAsEvents} />
+            <MerkleTreeData contractAddress={address} leafEvents={leavesEvents.data || []} />
+            <LeafEventsList leafEvents={leavesEvents.data || []} />
           </div>
           <div className="lg:col-span-7 space-y-4">
-            <CreateCommitment leafEvents={leavesAsEvents || []} contractAddress={address} />
+            <CreateCommitment leafEvents={leavesEvents.data || []} contractAddress={address} />
             <VoteChoice />
-            <GenerateProof leafEvents={leavesAsEvents || []} contractAddress={address} />
+            <GenerateProof leafEvents={leavesEvents.data || []} contractAddress={address} />
             <VoteWithBurnerPaymaster contractAddress={address} />
             <VoteWithBurnerHardhat contractAddress={address} />
           </div>

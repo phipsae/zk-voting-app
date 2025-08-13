@@ -4,10 +4,8 @@ import { useState } from "react";
 import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
-import { useWriteContract } from "wagmi";
-import { useSelectedNetwork, useTransactor } from "~~/hooks/scaffold-eth";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
-import { contracts } from "~~/utils/scaffold-eth/contract";
 
 interface CommitmentData {
   commitment: string;
@@ -27,11 +25,13 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCom
   const [isInserted, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
 
-  const selected = useSelectedNetwork();
-  const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
+  const { writeContractAsync } = useScaffoldWriteContract({
+    contractName: "Voting",
+    address: contractAddress,
+  });
 
-  const { writeContractAsync } = useWriteContract();
-  const writeTx = useTransactor();
+  // const { writeContractAsync } = useWriteContract();
+  // const writeTx = useTransactor();
 
   const handleGenerateCommitment = async () => {
     setIsGenerating(true);
@@ -55,14 +55,11 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCom
 
     setIsInserting(true);
     try {
-      await writeTx(
-        () =>
-          writeContractAsync({
-            address: contractAddress as `0x${string}`,
-            abi: votingAbi,
-            functionName: "insert",
-            args: [BigInt(commitmentData.commitment)],
-          }),
+      await writeContractAsync(
+        {
+          functionName: "insert",
+          args: [BigInt(commitmentData.commitment)],
+        },
         {
           blockConfirmations: 1,
           onBlockConfirmation: () => {

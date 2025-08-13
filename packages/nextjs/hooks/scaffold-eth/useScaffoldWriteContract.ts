@@ -59,7 +59,12 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
     typeof configOrName === "string"
       ? { contractName: configOrName, writeContractParams, chainId: undefined }
       : (configOrName as UseScaffoldWriteConfig<TContractName>);
-  const { contractName, chainId, writeContractParams: finalWriteContractParams } = finalConfig;
+  const {
+    contractName,
+    chainId,
+    address: addressOverride,
+    writeContractParams: finalWriteContractParams,
+  } = finalConfig;
 
   const wagmiConfig = useConfig();
 
@@ -90,7 +95,7 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
     variables: ScaffoldWriteContractVariables<TContractName, TFunctionName>,
     options?: ScaffoldWriteContractOptions,
   ) => {
-    if (!deployedContractData) {
+    if (!deployedContractData && !addressOverride) {
       notification.error("Target Contract is not deployed, did you forget to run `yarn deploy`?");
       return;
     }
@@ -110,8 +115,8 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
       const { blockConfirmations, onBlockConfirmation, ...mutateOptions } = options || {};
 
       const writeContractObject = {
-        abi: deployedContractData.abi as Abi,
-        address: deployedContractData.address,
+        abi: (deployedContractData?.abi as Abi) ?? (variables as any).abi,
+        address: (addressOverride ?? deployedContractData?.address)!,
         ...variables,
       } as WriteContractVariables<Abi, string, any[], Config, number>;
 
@@ -148,7 +153,7 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
     variables: ScaffoldWriteContractVariables<TContractName, TFunctionName>,
     options?: Omit<ScaffoldWriteContractOptions, "onBlockConfirmation" | "blockConfirmations">,
   ) => {
-    if (!deployedContractData) {
+    if (!deployedContractData && !addressOverride) {
       notification.error("Target Contract is not deployed, did you forget to run `yarn deploy`?");
       return;
     }
@@ -164,8 +169,8 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
 
     wagmiContractWrite.writeContract(
       {
-        abi: deployedContractData.abi as Abi,
-        address: deployedContractData.address,
+        abi: (deployedContractData?.abi as Abi) ?? (variables as any).abi,
+        address: (addressOverride ?? deployedContractData?.address)!,
         ...variables,
       } as WriteContractVariables<Abi, string, any[], Config, number>,
       options as

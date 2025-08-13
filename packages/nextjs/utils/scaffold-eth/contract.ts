@@ -179,6 +179,12 @@ export type UseScaffoldWriteConfig<TContractName extends ContractName> = {
   contractName: TContractName;
   chainId?: AllowedChainIds;
   disableSimulate?: boolean;
+  /**
+   * Optional address override. When provided, the hook will use this address instead of the
+   * one resolved from deployedContracts/externalContracts for the given contractName.
+   * Useful to point to another instance of the same contract interface.
+   */
+  address?: Address;
   writeContractParams?: UseWriteContractParameters;
 };
 
@@ -189,6 +195,12 @@ export type UseScaffoldReadConfig<
   contractName: TContractName;
   chainId?: AllowedChainIds;
   watch?: boolean;
+  /**
+   * Optional address override. When provided, the hook will use this address instead of the
+   * one resolved from deployedContracts/externalContracts for the given contractName.
+   * Useful to point to another instance of the same contract interface.
+   */
+  address?: Address;
 } & IsContractDeclarationMissing<
   Partial<UseReadContractParameters>,
   {
@@ -292,6 +304,12 @@ export type UseScaffoldEventHistoryConfig<
 > = {
   contractName: TContractName;
   eventName: IsContractDeclarationMissing<string, TEventName>;
+  /**
+   * Optional address override. When provided, the hook will use this address instead of the
+   * one resolved from deployedContracts/externalContracts for the given contractName.
+   * Useful to point to another instance of the same contract interface.
+   */
+  address?: Address;
   fromBlock?: bigint;
   toBlock?: bigint;
   chainId?: AllowedChainIds;

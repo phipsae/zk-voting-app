@@ -78,6 +78,7 @@ export const useScaffoldEventHistory = <
 >({
   contractName,
   eventName,
+  address,
   fromBlock,
   toBlock,
   chainId,
@@ -103,20 +104,23 @@ export const useScaffoldEventHistory = <
     chainId: selectedNetwork.id as AllowedChainIds,
   });
 
+  const overrideOrDeployedAddress = address ?? deployedContractData?.address;
+
   const event =
     deployedContractData &&
     ((deployedContractData.abi as Abi).find(part => part.type === "event" && part.name === eventName) as AbiEvent);
 
-  const isContractAddressAndClientReady = Boolean(deployedContractData?.address) && Boolean(publicClient);
+  const isContractAddressAndClientReady = Boolean(overrideOrDeployedAddress) && Boolean(publicClient);
 
-  const fromBlockValue = fromBlock !== undefined ? fromBlock : BigInt(deployedContractData?.deployedOnBlock || 0);
+  const fromBlockValue =
+    fromBlock !== undefined ? fromBlock : BigInt((address ? 0 : deployedContractData?.deployedOnBlock) || 0);
 
   const query = useInfiniteQuery({
     queryKey: [
       "eventHistory",
       {
         contractName,
-        address: deployedContractData?.address,
+        address: overrideOrDeployedAddress,
         eventName,
         fromBlock: fromBlockValue?.toString(),
         toBlock: toBlock?.toString(),
@@ -138,7 +142,7 @@ export const useScaffoldEventHistory = <
 
       const data = await getEvents(
         {
-          address: deployedContractData?.address,
+          address: overrideOrDeployedAddress,
           event,
           fromBlock: pageParam,
           toBlock: batchToBlock,
