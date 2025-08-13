@@ -27,6 +27,8 @@ export default function VotingByAddressPage() {
 
   const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
 
+  //   TODO: use scaffold history to get the leaves
+  //    TODO: exchange with graphql for indexer
   const { data: leavesData } = useQuery({
     queryKey: ["leaves", address],
     queryFn: async () => {
