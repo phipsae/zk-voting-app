@@ -18,7 +18,7 @@ contract Voting is Ownable {
     mapping(uint256 => bool) public s_commitments;
     // so that the proof cannot be replayed - and a person can only vote once
     mapping(bytes32 => bool) public s_nullifierHashes;
-    mapping(address => bool) public s_voters;
+    // mapping(address => bool) public s_voters;
 
     LeanIMTData public tree;
     // TODO: change to question
@@ -45,14 +45,14 @@ contract Voting is Ownable {
         question = _question;
     }
 
-    function addVoter(address _voter) public onlyOwner {
-        s_voters[_voter] = true;
-    }
+    // function addVoter(address _voter) public onlyOwner {
+    //     s_voters[_voter] = true;
+    // }
 
     function insert(uint256 _commitment) public {
-        if (!s_voters[msg.sender]) {
-            revert Voting__NotAllowedToVote();
-        }
+        // if (!s_voters[msg.sender]) {
+        //     revert Voting__NotAllowedToVote();
+        // }
         if (s_commitments[_commitment]) {
             revert Voting__CommitmentAlreadyAdded(_commitment);
         }

@@ -7,16 +7,18 @@ import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useReadContract } from "wagmi";
+import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
+import { contracts } from "~~/utils/scaffold-eth/contract";
 
 interface CreateCommitmentProps {
-  leafEvents?: any[];
   contractAddress?: `0x${string}`;
+  leafEvents?: any[];
 }
 
-export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
+export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommitmentProps) => {
   const [, setCircuitData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { commitmentData, setProofData, proofData, voteChoice } = useGlobalState();
@@ -31,14 +33,21 @@ export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
   const [jsonInput, setJsonInput] = useState<string>("");
   const [jsonError, setJsonError] = useState<string>("");
 
-  const { data: treeData } = useScaffoldReadContract({
-    contractName: "Voting",
+  const selected = useSelectedNetwork();
+  const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
+
+  const { data: treeData } = useReadContract({
+    address: contractAddress,
+    abi: votingAbi,
     functionName: "tree",
+    args: [],
   });
 
-  const { data: root } = useScaffoldReadContract({
-    contractName: "Voting",
+  const { data: root } = useReadContract({
+    address: contractAddress,
+    abi: votingAbi,
     functionName: "getRoot",
+    args: [],
   });
 
   const getCircuitDataAndGenerateProof = async () => {
@@ -75,7 +84,7 @@ export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {
       const generatedProof = await generateProof(
         root as bigint,
         voteChoice,
-        Number(treeData?.[1] || 0),
+        Number((treeData as readonly [bigint, bigint] | undefined)?.[1] ?? 0),
         effectiveNullifier,
         effectiveSecret,
         effectiveIndex as number,

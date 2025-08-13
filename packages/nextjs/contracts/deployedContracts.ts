@@ -116,7 +116,7 @@ const deployedContracts = {
       deployedOnBlock: 3,
     },
     Voting: {
-      address: "0x94099942864EA81cCF197E9D71ac53310b1468D8",
+      address: "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
       abi: [
         {
           inputs: [
@@ -268,19 +268,6 @@ const deployedContracts = {
           ],
           name: "VoteCast",
           type: "event",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "_voter",
-              type: "address",
-            },
-          ],
-          name: "addVoter",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
         },
         {
           inputs: [],
@@ -473,25 +460,6 @@ const deployedContracts = {
           inputs: [
             {
               internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "s_voters",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
               name: "newOwner",
               type: "address",
             },
@@ -571,10 +539,10 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 16,
+      deployedOnBlock: 26,
     },
     VotingFactory: {
-      address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
       abi: [
         {
           inputs: [
@@ -684,7 +652,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 19,
+      deployedOnBlock: 24,
     },
   },
   84532: {

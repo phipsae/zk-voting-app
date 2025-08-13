@@ -1,17 +1,17 @@
 "use client";
 
-import { LeafEventsList } from "./_components/LeafEventsList";
-import { VotingStats } from "./_components/VotingStats";
 import { CreateCommitment } from "./voting/_components/CreateCommitment";
 import { GenerateProof } from "./voting/_components/GenerateProof";
+import { LeafEventsList } from "./voting/_components/LeafEventsList";
 import { VoteChoice } from "./voting/_components/VoteChoice";
 import { VoteWithBurnerHardhat } from "./voting/_components/VoteWithBurnerHardhat";
 import { VoteWithBurnerPaymaster } from "./voting/_components/VoteWithBurnerPaymaster";
+import { VotingStats } from "./voting/_components/VotingStats";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import type { NextPage } from "next";
-import MerkleTreeData from "~~/app/_components/MerkleTreeData";
-import { useScaffoldReadContract, useScaffoldWatchContractEvent } from "~~/hooks/scaffold-eth";
+// import MerkleTreeData from "~~/app/voting/_components/MerkleTreeData";
+import { useScaffoldWatchContractEvent } from "~~/hooks/scaffold-eth";
 
 type LeafEvent = {
   index: string;
@@ -65,15 +65,15 @@ const Home: NextPage = () => {
     logIndex: idx,
   }));
 
-  const { data: treeData } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "tree",
-  });
+  // const { data: treeData } = useScaffoldReadContract({
+  //   contractName: "Voting",
+  //   functionName: "tree",
+  // });
 
-  const { data: root } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "getRoot",
-  });
+  // const { data: root } = useScaffoldReadContract({
+  //   contractName: "Voting",
+  //   functionName: "getRoot",
+  // });
 
   return (
     <>
@@ -85,7 +85,7 @@ const Home: NextPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
             <div className="lg:col-span-5 space-y-4">
               <VotingStats />
-              <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leavesAsEvents as any[]} />
+              {/* <MerkleTreeData treeData={treeData} root={root as any} leafEvents={leavesAsEvents as any[]} /> */}
               <LeafEventsList leafEvents={leavesAsEvents} />
             </div>
             <div className="lg:col-span-7 space-y-4">

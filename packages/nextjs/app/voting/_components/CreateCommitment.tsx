@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useWriteContract } from "wagmi";
+import { useSelectedNetwork, useTransactor } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
+import { contracts } from "~~/utils/scaffold-eth/contract";
 
 interface CommitmentData {
   commitment: string;
@@ -19,15 +21,17 @@ interface CreateCommitmentProps {
   contractAddress?: `0x${string}`;
 }
 
-export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => {
+export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCommitmentProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
   const [isInserted, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
 
-  const { writeContractAsync: writeVotingAsync } = useScaffoldWriteContract({
-    contractName: "Voting",
-  });
+  const selected = useSelectedNetwork();
+  const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
+
+  const { writeContractAsync } = useWriteContract();
+  const writeTx = useTransactor();
 
   const handleGenerateCommitment = async () => {
     setIsGenerating(true);
@@ -51,21 +55,25 @@ export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => 
 
     setIsInserting(true);
     try {
-      await writeVotingAsync({
-        functionName: "insert",
-        args: [BigInt(commitmentData.commitment)],
-        // Note: the SE2 write hook does not allow overriding address directly; for dynamic address we would
-        // need a custom viem write. For now we assume default network mapping is set to the right Voting when
-        // using this component on the default page. The dynamic voting page will send the tx via burner/paymaster.
-      });
-
-      // Update commitment data with the index (it will be the latest leaf)
-      // TODO: maybe check directly merkletree size
-      if (leafEvents) {
-        const newIndex = leafEvents.length;
-        setCommitmentData({ ...commitmentData, index: newIndex });
-        setIsInserted(true);
-      }
+      await writeTx(
+        () =>
+          writeContractAsync({
+            address: contractAddress as `0x${string}`,
+            abi: votingAbi,
+            functionName: "insert",
+            args: [BigInt(commitmentData.commitment)],
+          }),
+        {
+          blockConfirmations: 1,
+          onBlockConfirmation: () => {
+            if (leafEvents) {
+              const newIndex = leafEvents.length;
+              setCommitmentData({ ...commitmentData, index: newIndex });
+              setIsInserted(true);
+            }
+          },
+        },
+      );
     } catch (error) {
       console.error("Error inserting commitment:", error);
     } finally {
