@@ -1,12 +1,12 @@
 "use client";
 
-import { CreateCommitment } from "./_components/CreateCommitment";
-import { GenerateProof } from "./_components/GenerateProof";
 import { LeafEventsList } from "./_components/LeafEventsList";
-import { VoteChoice } from "./_components/VoteChoice";
-import { VoteWithBurnerHardhat } from "./_components/VoteWithBurnerHardhat";
-import { VoteWithBurnerPaymaster } from "./_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "./_components/VotingStats";
+import { CreateCommitment } from "./voting/_components/CreateCommitment";
+import { GenerateProof } from "./voting/_components/GenerateProof";
+import { VoteChoice } from "./voting/_components/VoteChoice";
+import { VoteWithBurnerHardhat } from "./voting/_components/VoteWithBurnerHardhat";
+import { VoteWithBurnerPaymaster } from "./voting/_components/VoteWithBurnerPaymaster";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import type { NextPage } from "next";

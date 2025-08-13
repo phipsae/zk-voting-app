@@ -13,6 +13,7 @@ import { notification } from "~~/utils/scaffold-eth";
 
 interface CreateCommitmentProps {
   leafEvents?: any[];
+  contractAddress?: `0x${string}`;
 }
 
 export const GenerateProof = ({ leafEvents = [] }: CreateCommitmentProps) => {

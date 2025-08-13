@@ -25,7 +25,7 @@ const pimlicoClient = createPimlicoClient({
   },
 });
 
-export const VoteWithBurnerPaymaster = () => {
+export const VoteWithBurnerPaymaster = ({ contractAddress }: { contractAddress?: `0x${string}` }) => {
   const [smartAccount, setSmartAccount] = useState<`0x${string}` | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const { proofData } = useGlobalState();
@@ -140,11 +140,11 @@ export const VoteWithBurnerPaymaster = () => {
             // Create or get existing smart account
             const { smartAccountClient } = await createSmartAccount();
 
-            if (!contractInfo) throw new Error("Contract not found");
+            if (!contractInfo && !contractAddress) throw new Error("Contract not found");
 
             // Encode the vote function call
             const callData = encodeFunctionData({
-              abi: contractInfo.abi,
+              abi: (contractInfo?.abi as any) || ([] as any),
               functionName: "vote",
               args: [
                 uint8ArrayToHexString(proofData.proof),
@@ -157,12 +157,12 @@ export const VoteWithBurnerPaymaster = () => {
 
             console.log("callData", callData);
             console.log("smartAccountClient", smartAccountClient);
-            console.log("contractInfo address", contractInfo.address);
+            console.log("contractInfo address", contractInfo?.address);
             console.log("calling address", smartAccountClient.account.address);
 
             // Create and send the user operation
             const userOpHash = await smartAccountClient.sendTransaction({
-              to: contractInfo.address,
+              to: (contractAddress || contractInfo?.address) as `0x${string}`,
               data: callData,
               value: 0n,
             });

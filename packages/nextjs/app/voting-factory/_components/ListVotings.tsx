@@ -28,19 +28,20 @@ const ListVotings = () => {
     if (!events) return [];
 
     const byAddress = new Map<string, VotingItem>();
-    for (const evt of events) {
-      const votingAddr = (evt as any).args?.voting as `0x${string}` | undefined;
-      const creatorAddr = (evt as any).args?.creator as `0x${string}` | undefined;
-      const question = (evt as any).args?.question as string | undefined;
+    for (const evt of events.filter(Boolean) as any[]) {
+      const args = (evt as any)?.args as any;
+      if (!args) continue;
+      const votingAddr = args.voting as `0x${string}` | undefined;
+      const creatorAddr = args.creator as `0x${string}` | undefined;
+      const question = args.question as string | undefined;
       if (!votingAddr) continue;
       const item: VotingItem = {
         voting: votingAddr,
         creator: creatorAddr || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
         question: question || "",
-        blockNumber: evt.blockNumber,
-        transactionHash: evt.transactionHash,
+        blockNumber: (evt as any).blockNumber,
+        transactionHash: (evt as any).transactionHash,
       };
-      // Prefer the latest occurrence if duplicates somehow exist
       const prev = byAddress.get(votingAddr);
       if (!prev || (item.blockNumber || 0n) > (prev.blockNumber || 0n)) {
         byAddress.set(votingAddr, item);
@@ -82,7 +83,7 @@ const ListVotings = () => {
                   <Address address={v.voting} size="xs" />
                 </div>
                 <div className="pt-2">
-                  <Link href={`/blockexplorer/address/${v.voting}`} className="btn btn-sm btn-primary">
+                  <Link href={`/voting/${v.voting}`} className="btn btn-sm btn-primary">
                     View contract
                   </Link>
                 </div>

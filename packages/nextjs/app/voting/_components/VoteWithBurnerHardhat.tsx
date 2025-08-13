@@ -6,7 +6,7 @@ import { Address } from "~~/components/scaffold-eth";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 
-export const VoteWithBurnerHardhat = () => {
+export const VoteWithBurnerHardhat = ({ contractAddress }: { contractAddress?: `0x${string}` }) => {
   const [burnerWallet, setBurnerWallet] = useState<HDNodeWallet | null>(null);
   const [txStatus, setTxStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const { proofData } = useGlobalState();
@@ -107,10 +107,14 @@ export const VoteWithBurnerHardhat = () => {
               });
             }
 
-            if (!contractInfo) throw new Error("Contract not found");
+            if (!contractInfo && !contractAddress) throw new Error("Contract not found");
 
             // Create contract instance with burner wallet
-            const contract = new Contract(contractInfo.address, contractInfo.abi as any, wallet.connect(provider));
+            const contract = new Contract(
+              (contractAddress || contractInfo?.address) as string,
+              (contractInfo?.abi as any) || [],
+              wallet.connect(provider),
+            );
 
             // Call the vote function directly with the burner wallet
             const tx = await contract.vote(

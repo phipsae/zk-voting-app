@@ -16,6 +16,7 @@ interface CommitmentData {
 
 interface CreateCommitmentProps {
   leafEvents?: any[];
+  contractAddress?: `0x${string}`;
 }
 
 export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => {
@@ -53,6 +54,9 @@ export const CreateCommitment = ({ leafEvents = [] }: CreateCommitmentProps) => 
       await writeVotingAsync({
         functionName: "insert",
         args: [BigInt(commitmentData.commitment)],
+        // Note: the SE2 write hook does not allow overriding address directly; for dynamic address we would
+        // need a custom viem write. For now we assume default network mapping is set to the right Voting when
+        // using this component on the default page. The dynamic voting page will send the tx via burner/paymaster.
       });
 
       // Update commitment data with the index (it will be the latest leaf)
