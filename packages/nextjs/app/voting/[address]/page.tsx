@@ -35,6 +35,9 @@ export default function VotingByAddressPage() {
     contractName: "Voting",
     eventName: "NewLeaf",
     address: address,
+    fromBlock: 0n,
+    watch: true,
+    enabled: true,
   });
 
   // const mergeAndDedupeEvents = (previous: any[], next: any[]) => {
