@@ -2,8 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { gql, request } from "graphql-request";
 import { Address } from "~~/components/scaffold-eth";
-import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
+
+// import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
 type VotingItem = {
   voting: `0x${string}`;
@@ -14,44 +17,75 @@ type VotingItem = {
 };
 
 const ListVotings = () => {
+  // const {
+  //   data: events,
+  //   isLoading,
+  //   error,
+  // } = useScaffoldEventHistory({
+  //   contractName: "VotingFactory",
+  //   eventName: "VotingCreated",
+  //   watch: true,
+  // });
+
+  type VotingEvent = {
+    address: `0x${string}`;
+    creator: `0x${string}`;
+    question: string;
+    createdAtBlock: number;
+  };
+
+  type VotingsData = { votingss: { items: VotingEvent[] } };
+
+  const fetchVotings = async () => {
+    const VotingsQuery = gql`
+      query Votings {
+        votingss {
+          items {
+            address
+            creator
+            question
+            createdAtBlock
+          }
+        }
+      }
+    `;
+    const data = await request<VotingsData>(
+      process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069",
+      VotingsQuery,
+    );
+    return data;
+  };
+
   const {
-    data: events,
-    isLoading,
-    error,
-  } = useScaffoldEventHistory({
-    contractName: "VotingFactory",
-    eventName: "VotingCreated",
-    watch: true,
+    data: votingsData,
+    isPending,
+    isError,
+  } = useQuery({
+    queryKey: ["votings"],
+    queryFn: fetchVotings,
   });
 
   const votings: VotingItem[] = useMemo(() => {
-    if (!events) return [];
+    if (!votingsData) return [];
 
     const byAddress = new Map<string, VotingItem>();
-    for (const evt of events.filter(Boolean) as any[]) {
-      const args = (evt as any)?.args as any;
-      if (!args) continue;
-      const votingAddr = args.voting as `0x${string}` | undefined;
-      const creatorAddr = args.creator as `0x${string}` | undefined;
-      const question = args.question as string | undefined;
+    for (const evt of votingsData.votingss.items.filter(Boolean)) {
+      const votingAddr = evt.address as `0x${string}` | undefined;
       if (!votingAddr) continue;
       const item: VotingItem = {
         voting: votingAddr,
-        creator: creatorAddr || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
-        question: question || "",
-        blockNumber: (evt as any).blockNumber,
-        transactionHash: (evt as any).transactionHash,
+        creator: (evt.creator as `0x${string}`) || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+        question: evt.question || "",
+        blockNumber: BigInt(evt.createdAtBlock),
+        transactionHash: undefined,
       };
-      const prev = byAddress.get(votingAddr);
-      if (!prev || (item.blockNumber || 0n) > (prev.blockNumber || 0n)) {
-        byAddress.set(votingAddr, item);
-      }
+      byAddress.set(votingAddr, item);
     }
 
     return Array.from(byAddress.values()).sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)));
-  }, [events]);
+  }, [votingsData]);
 
-  if (error) {
+  if (isError) {
     return (
       <div className="alert alert-error">
         <span>Failed to load votings.</span>
@@ -63,7 +97,7 @@ const ListVotings = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">All votings</h2>
-        {isLoading && <span className="loading loading-spinner loading-sm" />}
+        {isPending && <span className="loading loading-spinner loading-sm" />}
       </div>
 
       {votings.length === 0 ? (

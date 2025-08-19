@@ -1,9 +1,7 @@
 "use client";
 
 import React from "react";
-import { useReadContract } from "wagmi";
-import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
-import { contracts } from "~~/utils/scaffold-eth/contract";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 interface MerkleTreeDataProps {
   contractAddress: `0x${string}`;
@@ -17,21 +15,16 @@ export const MerkleTreeData: React.FC<MerkleTreeDataProps> = ({ contractAddress,
     navigator.clipboard.writeText(r);
   };
 
-  const selected = useSelectedNetwork();
-  const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
-
-  const { data: treeData } = useReadContract({
+  const { data: treeData } = useScaffoldReadContract({
     address: contractAddress,
-    abi: votingAbi,
+    contractName: "Voting",
     functionName: "tree",
-    args: [],
   });
 
-  const { data: root } = useReadContract({
+  const { data: root } = useScaffoldReadContract({
     address: contractAddress,
-    abi: votingAbi,
+    contractName: "Voting",
     functionName: "getRoot",
-    args: [],
   });
 
   const size = ((treeData as readonly [bigint, bigint] | undefined)?.[0] ?? 0n).toString();

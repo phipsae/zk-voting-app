@@ -1,30 +1,22 @@
-import { useReadContract } from "wagmi";
-import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
-import { contracts } from "~~/utils/scaffold-eth/contract";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string}` }) => {
-  const selected = useSelectedNetwork();
-  const votingAbi = contracts?.[selected.id]?.["Voting"]?.abi as any;
-
-  const { data: question } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: votingAbi,
+  const { data: question } = useScaffoldReadContract({
+    contractName: "Voting",
     functionName: "question",
-    args: [],
+    address: contractAddress,
   });
 
-  const { data: yesVotes } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: votingAbi,
+  const { data: yesVotes } = useScaffoldReadContract({
+    contractName: "Voting",
     functionName: "yesVotes",
-    args: [],
+    address: contractAddress,
   });
 
-  const { data: noVotes } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: votingAbi,
+  const { data: noVotes } = useScaffoldReadContract({
+    contractName: "Voting",
     functionName: "noVotes",
-    args: [],
+    address: contractAddress,
   });
 
   const q = (question as string | undefined) || undefined;

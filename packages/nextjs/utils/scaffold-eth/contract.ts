@@ -310,6 +310,11 @@ export type UseScaffoldEventHistoryConfig<
    * Useful to point to another instance of the same contract interface.
    */
   address?: Address;
+  /**
+   * Optional ABI override. Provide when the current network's contracts map doesn't contain
+   * the ABI for the given contractName, but you still want to query events by passing an address.
+   */
+  abi?: Abi;
   fromBlock?: bigint;
   toBlock?: bigint;
   chainId?: AllowedChainIds;

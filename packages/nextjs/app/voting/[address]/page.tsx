@@ -1,9 +1,10 @@
 "use client";
 
-// import { useState } from "react";
-import { notFound, useParams } from "next/navigation";
+import { useMemo } from "react";
+import { useParams } from "next/navigation";
 import { VoteChoice } from "../_components/VoteChoice";
-// import { usePublicClient } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { gql, request } from "graphql-request";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
 import { GenerateProof } from "~~/app/voting/_components/GenerateProof";
 import { LeafEventsList } from "~~/app/voting/_components/LeafEventsList";
@@ -11,134 +12,106 @@ import MerkleTreeData from "~~/app/voting/_components/MerkleTreeData";
 import { VoteWithBurnerHardhat } from "~~/app/voting/_components/VoteWithBurnerHardhat";
 import { VoteWithBurnerPaymaster } from "~~/app/voting/_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
-import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
-// import { contracts } from "~~/utils/scaffold-eth/contract";
+type LeafRow = { index: string; value: string };
+type LeavesData = { leavess: { items: LeafRow[] } };
 
-// type LeafEvent = {
-//   index: string;
-//   value: string;
-// };
+const LeavesQuery = gql/* GraphQL */ `
+  query Leaves($addr: String!, $limit: Int = 200) {
+    leavess(where: { votingAddress: $addr }, orderBy: "indexNum", orderDirection: "desc", limit: $limit) {
+      items {
+        index
+        value
+      }
+    }
+  }
+`;
+
+async function fetchLeaves(votingAddress: string, limit = 200) {
+  const endpoint = process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069";
+  const data = await request<LeavesData>(endpoint, LeavesQuery, {
+    addr: votingAddress.toLowerCase(),
+    limit,
+  });
+  return data.leavess.items;
+}
 
 export default function VotingByAddressPage() {
   const params = useParams<{ address: `0x${string}` }>();
   const address = params?.address as `0x${string}` | undefined;
-  // const selected = useSelectedNetwork();
-  // const publicClient = usePublicClient({ chainId: selected.id });
 
-  // const votingAbi = contracts?.[selected.id]?.["Voting"].abi as any;
+  // Guard: no address in URL yet
+  const enabled = Boolean(address && address.length === 42);
 
-  // No indexer: load historical logs once, then live-watch new events to append
-  // const [leavesAsEvents, setLeavesAsEvents] = useState<any[]>([]);
-
-  const leavesEvents = useScaffoldEventHistory({
-    contractName: "Voting",
-    eventName: "NewLeaf",
-    address: address,
-    fromBlock: 0n,
-    watch: true,
-    enabled: true,
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["leavess", address],
+    queryFn: () => fetchLeaves(address!),
+    enabled,
+    // light polling so UI picks up rows soon after indexer writes them
+    refetchInterval: 2000,
   });
 
-  // const mergeAndDedupeEvents = (previous: any[], next: any[]) => {
-  //   const seen = new Set<string>();
-  //   const merged = [...previous, ...next];
-  //   const deduped = merged.filter(e => {
-  //     const key =
-  //       e?.transactionHash && e?.logIndex !== undefined
-  //         ? `${e.transactionHash}-${e.logIndex}`
-  //         : `logIndex-${e?.logIndex}`;
-  //     if (seen.has(key)) return false;
-  //     seen.add(key);
-  //     return true;
-  //   });
-  //   // Sort by args.index descending (most recent/highest index first)
-  //   deduped.sort((a, b) => {
-  //     const ai = a?.args?.index as bigint | undefined;
-  //     const bi = b?.args?.index as bigint | undefined;
-  //     if (ai === undefined || bi === undefined) return 0;
-  //     if (ai === bi) return 0;
-  //     return ai < bi ? 1 : -1;
-  //   });
-  //   return deduped;
-  // };
-
-  // useEffect(() => {
-  //   const loadInitial = async () => {
-  //     if (!publicClient || !address) return;
-  //     const event = (votingAbi as any).find((x: any) => x.type === "event" && x.name === "NewLeaf");
-  //     const logs = await publicClient.getLogs({ address, event, fromBlock: 0n });
-  //     const mapped = logs.map(l => ({
-  //       args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
-  //       logIndex: Number((l as any).logIndex ?? 0),
-  //       transactionHash: (l as any).transactionHash,
-  //     }));
-  //     setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
-  //   };
-  //   void loadInitial();
-  // }, [publicClient, address, votingAbi]);
-
-  // useWatchContractEvent({
-  //   address: address,
-  //   abi: votingAbi,
-  //   eventName: "NewLeaf",
-  //   onLogs: logs => {
-  //     const mapped = logs.map(l => ({
-  //       args: { index: BigInt((l as any).args.index), value: BigInt((l as any).args.value) },
-  //       logIndex: Number((l as any).logIndex ?? 0),
-  //       transactionHash: (l as any).transactionHash,
-  //     }));
-  //     setLeavesAsEvents(prev => mergeAndDedupeEvents(prev, mapped));
-  //   },
-  // });
-
-  //   //    TODO: exchange with graphql for indexer
-  //   const { data: leavesData } = useQuery({
-  //     queryKey: ["leaves", address],
-  //     queryFn: async () => {
-  //       if (!publicClient) return [] as LeafEvent[];
-  //       const logs = await publicClient.getLogs({
-  //         address,
-  //         event: (votingAbi as any).find((x: any) => x.type === "event" && x.name === "NewLeaf"),
-  //         fromBlock: 0n,
-  //       });
-  //       return logs.map(l => ({ index: String((l as any).args.index), value: String((l as any).args.value) }));
-  //     },
-  //     refetchInterval: 2000,
-  //   });
-
-  //   const leavesAsEvents: any[] = useMemo(
-  //     () =>
-  //       (leavesData || []).map((item: any, idx: number) => ({
-  //         args: { index: BigInt(item.index), value: BigInt(item.value) },
-  //         logIndex: idx,
-  //       })),
-  //     [leavesData],
-  //   );
-
-  if (!address) return notFound();
+  // Map GraphQL rows -> viem-like event array your components use
+  const leavesEvents = useMemo(
+    () =>
+      (data ?? []).map((row, i) => ({
+        args: {
+          index: BigInt(row.index),
+          value: BigInt(row.value),
+        },
+        logIndex: i,
+        // I dont understand why this is needed, but it is
+        blockNumber: 0n,
+        blockHash: "0x0" as `0x${string}`,
+        transactionHash: "0x0" as `0x${string}`,
+        removed: false,
+        address: "0x0" as `0x${string}`,
+        data: "0x0" as `0x${string}`,
+        topics: ["0x0"] as [`0x${string}`, ...`0x${string}`[]],
+        transactionIndex: 0,
+      })),
+    [data],
+  );
 
   return (
     <div className="flex items-start flex-col grow pt-6 w-full">
-      <button onClick={() => console.log(leavesEvents)}>Log leavesEvents</button>
       <div className="px-4 sm:px-5 w-full max-w-7xl mx-auto">
         <h1 className="text-center">
           <span className="block text-3xl font-bold tracking-tight">Voting</span>
+          {address && <span className="block text-sm mt-1 opacity-70">{address}</span>}
         </h1>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
-          <div className="lg:col-span-5 space-y-4">
-            <VotingStats contractAddress={address} />
-            <MerkleTreeData contractAddress={address} leafEvents={leavesEvents.data || []} />
-            <LeafEventsList leafEvents={leavesEvents.data || []} />
-          </div>
-          <div className="lg:col-span-7 space-y-4">
-            <CreateCommitment leafEvents={leavesEvents.data || []} contractAddress={address} />
-            <VoteChoice />
-            <GenerateProof leafEvents={leavesEvents.data || []} contractAddress={address} />
-            <VoteWithBurnerPaymaster contractAddress={address} />
-            <VoteWithBurnerHardhat contractAddress={address} />
-          </div>
-        </div>
+
+        {!enabled ? (
+          <div className="mt-6 text-sm opacity-70">No voting address in URL.</div>
+        ) : (
+          <>
+            <div className="mt-3 flex items-center gap-3 text-sm opacity-70">
+              {isLoading ? "Loading…" : isFetching ? "Refreshing…" : "Up to date"}
+              <button className="underline" onClick={() => refetch()}>
+                Refresh now
+              </button>
+              <button className="underline" onClick={() => console.log(leavesEvents)}>
+                Log leavesEvents
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
+              <div className="lg:col-span-5 space-y-4">
+                <VotingStats contractAddress={address} />
+                <MerkleTreeData contractAddress={address as `0x${string}`} leafEvents={leavesEvents} />
+                <LeafEventsList leafEvents={leavesEvents} />
+              </div>
+
+              <div className="lg:col-span-7 space-y-4">
+                <CreateCommitment leafEvents={leavesEvents} contractAddress={address} />
+                <VoteChoice />
+                <GenerateProof leafEvents={leavesEvents} contractAddress={address} />
+                <VoteWithBurnerPaymaster contractAddress={address} />
+                <VoteWithBurnerHardhat contractAddress={address} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

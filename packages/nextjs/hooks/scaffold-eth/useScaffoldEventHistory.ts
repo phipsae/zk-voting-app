@@ -79,6 +79,7 @@ export const useScaffoldEventHistory = <
   contractName,
   eventName,
   address,
+  abi,
   fromBlock,
   toBlock,
   chainId,
@@ -106,9 +107,8 @@ export const useScaffoldEventHistory = <
 
   const overrideOrDeployedAddress = address ?? deployedContractData?.address;
 
-  const event =
-    deployedContractData &&
-    ((deployedContractData.abi as Abi).find(part => part.type === "event" && part.name === eventName) as AbiEvent);
+  const contractAbi = (abi as Abi | undefined) ?? (deployedContractData?.abi as Abi | undefined);
+  const event = contractAbi?.find(part => part.type === "event" && part.name === eventName) as AbiEvent | undefined;
 
   const isContractAddressAndClientReady = Boolean(overrideOrDeployedAddress) && Boolean(publicClient);
 
