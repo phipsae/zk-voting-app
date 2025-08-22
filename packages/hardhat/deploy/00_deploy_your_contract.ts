@@ -52,32 +52,32 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   // const honkVerifierAddress = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
   const verifier = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
 
-  await deploy("VotingFactory", {
-    from: deployer,
-    args: [verifier],
-    log: true,
-    autoMine: true,
-    libraries: {
-      LeanIMT: leanIMTAddress,
-    },
-  });
+  // await deploy("VotingFactory", {
+  //   from: deployer,
+  //   args: [verifier],
+  //   log: true,
+  //   autoMine: true,
+  //   libraries: {
+  //     LeanIMT: leanIMTAddress,
+  //   },
+  // });
 
   // const leanIMT = "0x0000000000000000000000000000000000000000";
 
-  // await deploy("Voting", {
-  //   from: deployer,
-  //   // Contract constructor arguments
-  //   args: [verifier, "Should we build a new bridge?"],
-  //   log: true,
-  //   // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
-  //   // automatically mining the contract deployment transaction. There is no effect on live networks.
-  //   autoMine: true,
-  //   libraries: {
-  //     LeanIMT: leanIMT,
-  //     // PoseidonT3: poseidon3.address,
-  //     // PoseidonT2: poseidon2.address,
-  //   },
-  // });
+  await deploy("Voting", {
+    from: deployer,
+    // Contract constructor arguments
+    args: [verifier, "Should we build a new bridge?"],
+    log: true,
+    // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+    // automatically mining the contract deployment transaction. There is no effect on live networks.
+    autoMine: true,
+    libraries: {
+      LeanIMT: leanIMTAddress,
+      // PoseidonT3: poseidon3.address,
+      // PoseidonT2: poseidon2.address,
+    },
+  });
 };
 
 export default deployYourContract;

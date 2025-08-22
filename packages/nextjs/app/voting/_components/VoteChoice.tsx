@@ -7,8 +7,7 @@ export const VoteChoice = () => {
   return (
     <div className="bg-base-100 shadow rounded-xl p-6 space-y-4">
       <div className="space-y-1 text-center">
-        <h2 className="text-2xl font-bold">Step 2 — Choose your vote</h2>
-        <p className="text-sm opacity-70">Your selection is private in the ZK proof, not linked to your wallet.</p>
+        <h2 className="text-2xl font-bold">Choose your vote</h2>
       </div>
       <div className="flex gap-3 justify-center">
         <button
@@ -24,14 +23,6 @@ export const VoteChoice = () => {
           No
         </button>
       </div>
-      {voteChoice !== null && (
-        <div className="text-center text-sm">
-          Selected:{" "}
-          <span className={voteChoice ? "text-success font-semibold" : "text-error font-semibold"}>
-            {voteChoice ? "Yes" : "No"}
-          </span>
-        </div>
-      )}
     </div>
   );
 };

@@ -5,7 +5,7 @@ import { UltraHonkBackend } from "@aztec/bb.js";
 import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { poseidon1, poseidon2 } from "poseidon-lite";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useCopyToClipboard, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
 
@@ -16,8 +16,9 @@ export const CombinedVote = ({
   contractAddress?: `0x${string}`;
   leafEvents?: any[];
 }) => {
-  const { commitmentData, voteChoice, setProofData } = useGlobalState();
+  const { commitmentData, voteChoice, setProofData, proofData } = useGlobalState();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
 
   const { data: treeData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -37,6 +38,28 @@ export const CombinedVote = ({
     contractName: "Voting",
     address: contractAddress,
   });
+
+  const handleCopyProofJSON = async () => {
+    if (!proofData) return;
+
+    try {
+      // Convert Uint8Array to regular array for JSON serialization
+      const proofArray = Array.from(proofData.proof);
+      const proofJson = {
+        proof: proofArray,
+        publicInputs: proofData.publicInputs,
+        proofHex: uint8ArrayToHexString(proofData.proof),
+        publicInputsHex: normalizePublicInputsToHex32(proofData.publicInputs),
+      };
+
+      const jsonStr = JSON.stringify(proofJson, null, 2);
+      await copyToClipboard(jsonStr);
+      notification.success("Proof data copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy proof:", error);
+      notification.error("Failed to copy proof data");
+    }
+  };
 
   const handleVote = async () => {
     try {
@@ -93,6 +116,51 @@ export const CombinedVote = ({
           {isSubmitting ? "Submitting..." : "Vote now"}
         </button>
       </div>
+
+      {/* Proof Data Section */}
+      {proofData && (
+        <>
+          <div className="divider"></div>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold">Generated proof data</h3>
+              <div className="flex gap-2">
+                <button
+                  className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
+                  onClick={handleCopyProofJSON}
+                >
+                  {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="rounded-lg border border-base-300 p-3">
+                <div className="text-xs opacity-70 mb-1">Proof (Hex)</div>
+                <code className="text-xs break-all bg-base-200 p-2 rounded block">
+                  {uint8ArrayToHexString(proofData.proof)}
+                </code>
+              </div>
+              <div className="rounded-lg border border-base-300 p-3">
+                <div className="text-xs opacity-70 mb-1">Public Inputs</div>
+                <code className="text-xs break-all bg-base-200 p-2 rounded block">
+                  {JSON.stringify(proofData.publicInputs, null, 2)}
+                </code>
+              </div>
+            </div>
+
+            <div className="alert alert-success">
+              <div>
+                <h3 className="font-semibold">Vote submitted successfully!</h3>
+                <p className="text-sm opacity-80">
+                  Your ZK proof has been generated and your vote has been recorded on the blockchain. You can copy the
+                  proof data above for your records.
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

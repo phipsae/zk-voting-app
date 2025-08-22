@@ -18,8 +18,8 @@ contract Voting is Ownable {
     mapping(uint256 => bool) public s_commitments;
     // so that the proof cannot be replayed - and a person can only vote once
     mapping(bytes32 => bool) public s_nullifierHashes;
-    mapping(address => bool) public s_voters;
-    mapping(address => bool) public s_hasRegistered;
+    mapping(address => bool) private s_voters;
+    mapping(address => bool) private s_hasRegistered;
 
     LeanIMTData public tree;
     uint256 public yesVotes;
@@ -114,5 +114,13 @@ contract Voting is Ownable {
 
     function getRoot() public view returns (uint256) {
         return tree.root();
+    }
+
+    function hasRegistered(address _voter) public view returns (bool) {
+        return s_hasRegistered[_voter];
+    }
+
+    function isVoter(address _voter) public view returns (bool) {
+        return s_voters[_voter];
     }
 }

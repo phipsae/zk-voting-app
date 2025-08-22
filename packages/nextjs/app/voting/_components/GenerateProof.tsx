@@ -9,7 +9,7 @@ import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
-import { notification } from "~~/utils/scaffold-eth";
+import { notification, saveProofToLocalStorage } from "~~/utils/scaffold-eth";
 
 interface CreateCommitmentProps {
   contractAddress?: `0x${string}`;
@@ -90,6 +90,14 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
         proof: generatedProof.proof,
         publicInputs: generatedProof.publicInputs,
       });
+
+      // Save proof data to localStorage
+      saveProofToLocalStorage(
+        { proof: generatedProof.proof, publicInputs: generatedProof.publicInputs },
+        contractAddress,
+        voteChoice,
+      );
+
       // Build exportable JSON after setting state
       const exportable = buildExportableProofJSON(generatedProof.proof, generatedProof.publicInputs);
       setProofJsonText(JSON.stringify(exportable, null, 2));

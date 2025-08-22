@@ -2,15 +2,13 @@
 
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { VoteChoice } from "../_components/VoteChoice";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
 import { CombinedVoteBurnerPaymaster } from "~~/app/voting/_components/CombinedVoteBurnerPaymaster";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
+import { ShowVotersModal } from "~~/app/voting/_components/ShowVotersModal";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
-import { Address } from "~~/components/scaffold-eth";
-import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 type LeafRow = { index: string; value: string };
 type LeavesData = { leavess: { items: LeafRow[] } };
@@ -42,18 +40,12 @@ export default function VotingByAddressPage() {
   // Guard: no address in URL yet
   const enabled = Boolean(address && address.length === 42);
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data } = useQuery({
     queryKey: ["leavess", address],
     queryFn: () => fetchLeaves(address!),
     enabled,
     // light polling so UI picks up rows soon after indexer writes them
     refetchInterval: 2000,
-  });
-
-  const { data: question } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "question",
-    address: address,
   });
 
   // Map GraphQL rows -> viem-like event array your components use
@@ -79,48 +71,29 @@ export default function VotingByAddressPage() {
   );
 
   return (
-    <div className="flex items-start flex-col grow pt-6 w-full">
+    <div className="flex items-center justify-center flex-col grow pt-6 w-full">
       <div className="px-4 sm:px-5 w-full max-w-7xl mx-auto">
-        <h1 className="text-center">
-          {question && <span className="block text-3xl font-bold tracking-tight">{question}</span>}
-          {address && (
-            <div className="flex justify-center">
-              <Address address={address} />
-            </div>
-          )}
-        </h1>
-
         {!enabled ? (
-          <div className="mt-6 text-sm opacity-70">No voting address in URL.</div>
+          <div className="mt-6 text-sm opacity-70 text-center">No voting address in URL.</div>
         ) : (
-          <>
-            <div className="mt-3 flex items-center justify-between text-sm opacity-70">
-              <div className="flex items-center gap-3">
-                {isLoading ? "Loading…" : isFetching ? "Refreshing…" : "Up to date"}
-                <button className="underline" onClick={() => refetch()}>
-                  Refresh now
-                </button>
+          <div className="flex flex-col items-center w-full">
+            <div className="w-full max-w-2xl space-y-4 mt-6">
+              <div className="flex flex-wrap gap-2 justify-between">
+                {address && <AddVotersModal contractAddress={address} />}
+                {address && <ShowVotersModal contractAddress={address} />}
               </div>
-              {address && (
+              <VotingStats contractAddress={address} />
+              <CreateCommitment compact leafEvents={leavesEvents} contractAddress={address} />
+              <CombinedVoteBurnerPaymaster contractAddress={address} leafEvents={leavesEvents} />
+            </div>
+            {address && (
+              <div className="text-center text-sm opacity-70 mt-4">
                 <a className="underline" href={`/voting/${address}/debug`}>
                   Advanced / Debug page
                 </a>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
-              <div className="lg:col-span-5 space-y-4">
-                <VotingStats contractAddress={address} />
-                {address && <AddVotersModal contractAddress={address} />}
               </div>
-
-              <div className="lg:col-span-7 space-y-4">
-                <CreateCommitment compact leafEvents={leavesEvents} contractAddress={address} />
-                <VoteChoice />
-                <CombinedVoteBurnerPaymaster contractAddress={address} leafEvents={leavesEvents} />
-              </div>
-            </div>
-          </>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string}` }) => {
@@ -19,6 +20,12 @@ export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string
     address: contractAddress,
   });
 
+  const { data: owner } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "owner",
+    address: contractAddress,
+  });
+
   const q = (question as string | undefined) || undefined;
   const yes = (yesVotes as bigint | undefined) ?? 0n;
   const no = (noVotes as bigint | undefined) ?? 0n;
@@ -28,11 +35,18 @@ export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string
 
   return (
     <div className="bg-base-100 shadow rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Proposal</h2>
-        <span className="text-xs opacity-70">Total: {totalVotes.toString()}</span>
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">{q || "Loading..."}</h2>
+        <div className="flex justify-center gap-10">
+          <div>
+            Voting contract: <Address address={contractAddress} />
+          </div>
+          <div>
+            Owner: <Address address={owner as `0x${string}`} />
+          </div>
+        </div>
+        <span className="text-xs opacity-70">Total Votes: {totalVotes.toString()}</span>
       </div>
-      <div className="text-sm text-center italic truncate">&quot;{q || "Loading..."}&quot;</div>
       <div className="grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-base-300 p-3">
           <div className="text-xs opacity-70">Yes</div>

@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { UltraHonkBackend } from "@aztec/bb.js";
-// @ts-ignore
 import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { createSmartAccountClient } from "permissionless";
@@ -13,9 +12,9 @@ import { createPublicClient, encodeFunctionData, http } from "viem";
 import { EntryPointVersion, entryPoint07Address } from "viem/account-abstraction";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
-import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useCopyToClipboard, useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
-import { notification } from "~~/utils/scaffold-eth";
+import { hasStoredProof, notification, saveProofToLocalStorage } from "~~/utils/scaffold-eth";
 
 export const CombinedVoteBurnerPaymaster = ({
   contractAddress,
@@ -24,8 +23,11 @@ export const CombinedVoteBurnerPaymaster = ({
   contractAddress?: `0x${string}`;
   leafEvents?: any[];
 }) => {
-  const { commitmentData, voteChoice, setProofData } = useGlobalState();
+  const { commitmentData, voteChoice, setVoteChoice, setProofData, proofData } = useGlobalState();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProofAlertCollapsed, setIsProofAlertCollapsed] = useState(true);
+  const [hasStoredProofData, setHasStoredProofData] = useState(false);
+  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
 
   const { data: treeData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -42,6 +44,11 @@ export const CombinedVoteBurnerPaymaster = ({
   const depth = useMemo(() => Number((treeData as readonly [bigint, bigint] | undefined)?.[1] ?? 0), [treeData]);
 
   const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
+
+  // Check for stored proof data on mount
+  useEffect(() => {
+    setHasStoredProofData(hasStoredProof(contractAddress));
+  }, [contractAddress]);
 
   // Pimlico + ERC-4337 setup (mirrors VoteWithBurnerPaymaster)
   const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
@@ -78,6 +85,28 @@ export const CombinedVoteBurnerPaymaster = ({
     return { smartAccountClient, accountAddress: account.address as `0x${string}` };
   };
 
+  const handleCopyProofJSON = async () => {
+    if (!proofData) return;
+
+    try {
+      // Convert Uint8Array to regular array for JSON serialization
+      const proofArray = Array.from(proofData.proof);
+      const proofJson = {
+        proof: proofArray,
+        publicInputs: proofData.publicInputs,
+        proofHex: uint8ArrayToHexString(proofData.proof),
+        publicInputsHex: normalizePublicInputsToHex32(proofData.publicInputs),
+      };
+
+      const jsonStr = JSON.stringify(proofJson, null, 2);
+      await copyToClipboard(jsonStr);
+      notification.success("Proof data copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy proof:", error);
+      notification.error("Failed to copy proof data");
+    }
+  };
+
   const handleGenerateAndVote = async () => {
     try {
       setIsSubmitting(true);
@@ -105,6 +134,14 @@ export const CombinedVoteBurnerPaymaster = ({
       );
 
       setProofData({ proof: generated.proof, publicInputs: generated.publicInputs });
+
+      // Save proof data to localStorage
+      saveProofToLocalStorage(
+        { proof: generated.proof, publicInputs: generated.publicInputs },
+        contractAddress,
+        voteChoice,
+      );
+      setHasStoredProofData(true);
 
       // Build calldata for Voting.vote
       const proofHex = uint8ArrayToHexString(generated.proof);
@@ -138,16 +175,85 @@ export const CombinedVoteBurnerPaymaster = ({
   };
 
   return (
-    <div className="bg-base-100 shadow rounded-xl p-6 space-y-4">
-      <div className="text-center space-y-1">
-        <h2 className="text-2xl font-bold">Cast your vote (Gasless)</h2>
-        <p className="text-sm opacity-70">Generates your ZK proof and submits via an ERC-4337 smart account.</p>
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-6">
+      {/* Vote Choice Section */}
+      <div className="space-y-4">
+        <div className="space-y-1 text-center">
+          <h2 className="text-2xl font-bold">Choose your vote</h2>
+        </div>
+        <div className="flex gap-3 justify-center">
+          <button
+            className={`btn btn-lg ${voteChoice === true ? "btn-success" : "btn-outline"}`}
+            onClick={() => setVoteChoice(true)}
+          >
+            Yes
+          </button>
+          <button
+            className={`btn btn-lg ${voteChoice === false ? "btn-error" : "btn-outline"}`}
+            onClick={() => setVoteChoice(false)}
+          >
+            No
+          </button>
+        </div>
       </div>
+
+      {/* Divider */}
+      <div className="divider"></div>
+
+      {/* Generate Proof and Vote Section */}
       <div className="flex justify-center">
-        <button className="btn btn-primary btn-lg" onClick={handleGenerateAndVote} disabled={isSubmitting}>
-          {isSubmitting ? "Generating & submitting..." : "Generate proof and vote"}
+        <button
+          className={`btn btn-lg ${hasStoredProofData ? "btn-success cursor-not-allowed" : "btn-primary"}`}
+          onClick={hasStoredProofData ? undefined : handleGenerateAndVote}
+          disabled={isSubmitting || voteChoice === null || hasStoredProofData}
+        >
+          {hasStoredProofData
+            ? "✓ Already voted"
+            : isSubmitting
+              ? "Generating & submitting..."
+              : "Generate proof and vote"}
         </button>
       </div>
+
+      {/* Proof Data Section */}
+      {proofData && (
+        <>
+          <div className="divider"></div>
+          <div className="space-y-4">
+            <div className="alert alert-info">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold">Successfully voted!</h3>
+                    {!isProofAlertCollapsed && (
+                      <p className="text-sm opacity-80">
+                        Your ZK proof has been generated and submitted to the blockchain. You can copy the proof data
+                        above for your records.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => setIsProofAlertCollapsed(!isProofAlertCollapsed)}
+                  >
+                    {isProofAlertCollapsed ? "▼" : "▲"}
+                  </button>
+                </div>
+                {!isProofAlertCollapsed && (
+                  <div className="flex gap-2">
+                    <button
+                      className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
+                      onClick={handleCopyProofJSON}
+                    >
+                      {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

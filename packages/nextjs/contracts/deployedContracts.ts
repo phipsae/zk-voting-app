@@ -1104,7 +1104,7 @@ const deployedContracts = {
       deployedOnBlock: 29619310,
     },
     Voting: {
-      address: "0xE3A74784c8cDda3504b12477F41a52429C4A08B1",
+      address: "0x842BFCF529A2FdA6f4A402a6a530Aa99d77004EF",
       abi: [
         {
           inputs: [
@@ -1258,6 +1258,19 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "voter",
+              type: "address",
+            },
+          ],
+          name: "VoterAdded",
+          type: "event",
+        },
+        {
           inputs: [
             {
               internalType: "address[]",
@@ -1353,6 +1366,25 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_voter",
+              type: "address",
+            },
+          ],
+          name: "hasRegistered",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "i_verifier",
           outputs: [
@@ -1376,6 +1408,25 @@ const deployedContracts = {
           name: "insert",
           outputs: [],
           stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_voter",
+              type: "address",
+            },
+          ],
+          name: "isVoter",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
         {
@@ -1452,25 +1503,6 @@ const deployedContracts = {
             },
           ],
           name: "s_nullifierHashes",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "s_voters",
           outputs: [
             {
               internalType: "bool",
@@ -1564,10 +1596,10 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 29887973,
+      deployedOnBlock: 30058208,
     },
     VotingFactory: {
-      address: "0x20170De392C8E8b101C4284E4798E5245D5Bc66f",
+      address: "0x78d26E650cD682AF83D102dC92EFA431ac2044d3",
       abi: [
         {
           inputs: [
@@ -1677,7 +1709,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 30056185,
+      deployedOnBlock: 30058085,
     },
   },
 } as const;

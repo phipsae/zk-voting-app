@@ -5,8 +5,9 @@ import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
 import { useAccount } from "wagmi";
-import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useCopyToClipboard, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
+import { notification } from "~~/utils/scaffold-eth";
 
 interface CommitmentData {
   commitment: string;
@@ -25,20 +26,22 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
   const [isInserted, setIsInserted] = useState(false);
+  const [isAlertCollapsed, setIsAlertCollapsed] = useState(true);
   const { setCommitmentData, commitmentData } = useGlobalState();
+  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
 
   const { address: walletAddress, isConnected } = useAccount();
 
   const { data: isVoter } = useScaffoldReadContract({
     contractName: "Voting",
-    functionName: "s_voters",
+    functionName: "isVoter",
     args: [walletAddress],
     address: contractAddress,
   });
 
-  const { data: hasRegistered } = (useScaffoldReadContract as any)({
+  const { data: hasRegistered } = useScaffoldReadContract({
     contractName: "Voting",
-    functionName: "s_hasRegistered",
+    functionName: "hasRegistered",
     args: [walletAddress],
     address: contractAddress,
   });
@@ -67,9 +70,15 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
     }
   };
 
-  const copyToClipboard = (data: any) => {
-    const jsonStr = JSON.stringify(data, null, 2);
-    navigator.clipboard.writeText(jsonStr);
+  const handleCopyJSON = async (data: any) => {
+    try {
+      const jsonStr = JSON.stringify(data, null, 2);
+      await copyToClipboard(jsonStr);
+      notification.success("Commitment data copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      notification.error("Failed to copy data");
+    }
   };
 
   const handleInsertCommitment = async (dataOverride?: CommitmentData) => {
@@ -108,7 +117,7 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
 
   return (
     <div className="bg-base-100 shadow rounded-xl p-6 space-y-5">
-      <div className="space-y-1">
+      <div className="space-y-1 text-center">
         <h2 className="text-2xl font-bold">Register for this vote</h2>
         {!compact && (
           <p className="text-sm opacity-70">Generate your anonymous identifier and insert it into the Merkle tree.</p>
@@ -117,8 +126,16 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
 
       <div className="flex flex-col gap-3">
         <button
-          className="btn btn-primary btn-lg"
-          onClick={handleRegister}
+          className={`btn btn-lg ${
+            hasRegistered === true
+              ? "btn-success cursor-not-allowed"
+              : isGenerating || isInserting
+                ? "btn-primary"
+                : !canRegister
+                  ? "btn-disabled"
+                  : "btn-primary"
+          }`}
+          onClick={hasRegistered === true ? undefined : handleRegister}
           disabled={isGenerating || isInserting || !canRegister}
         >
           {isGenerating ? (
@@ -132,64 +149,110 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
               Inserting into Merkle tree...
             </>
           ) : !isConnected ? (
-            "Connect wallet"
+            "Connect wallet to register"
           ) : isVoter === false ? (
-            "Not on voters list"
+            "Not eligible - not on voters list"
           ) : hasRegistered === true ? (
-            "Already registered"
+            "✓ Already registered for this vote"
           ) : (
-            "Register"
+            "Register to vote"
           )}
         </button>
       </div>
 
-      {!compact && commitmentData && (
+      {commitmentData && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold">Generated commitment data</h3>
-            <div className="flex gap-2">
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() =>
-                  copyToClipboard({
-                    nullifier: commitmentData.nullifier,
-                    secret: commitmentData.secret,
-                    index: commitmentData.index,
-                  })
-                }
-              >
-                Copy JSON
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => copyToClipboard(commitmentData.commitment)}>
-                Copy commitment
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="rounded-lg border border-base-300 p-3">
-              <div className="text-xs opacity-70 mb-1">Commitment</div>
-              <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.commitment}</code>
-            </div>
-            <div className="rounded-lg border border-base-300 p-3">
-              <div className="text-xs opacity-70 mb-1">Nullifier</div>
-              <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.nullifier}</code>
-            </div>
-            <div className="rounded-lg border border-base-300 p-3">
-              <div className="text-xs opacity-70 mb-1">Secret</div>
-              <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.secret}</code>
-            </div>
-          </div>
-
-          {isInserted && (
-            <div className="alert alert-warning">
-              <div>
-                <h3 className="font-semibold">Save your nullifier and secret now</h3>
-                <p className="text-sm opacity-80">
-                  These values are required to generate your ZK proof later. They cannot be recovered if lost.
-                </p>
+          {compact ? (
+            // Compact mode: Only show when inserted
+            isInserted && (
+              <div className="alert alert-warning">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">Save your nullifier and secret now</h3>
+                      {!isAlertCollapsed && (
+                        <p className="text-sm opacity-80">
+                          These values are required to generate your ZK proof later. They cannot be recovered if lost.
+                        </p>
+                      )}
+                    </div>
+                    <button className="btn btn-ghost btn-xs" onClick={() => setIsAlertCollapsed(!isAlertCollapsed)}>
+                      {isAlertCollapsed ? "▼" : "▲"}
+                    </button>
+                  </div>
+                  {!isAlertCollapsed && (
+                    <div className="flex gap-2">
+                      <button
+                        className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
+                        onClick={() =>
+                          handleCopyJSON({
+                            nullifier: commitmentData.nullifier,
+                            secret: commitmentData.secret,
+                            index: commitmentData.index,
+                          })
+                        }
+                      >
+                        {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )
+          ) : (
+            // Full mode: Show everything
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-lg font-semibold">Generated commitment data</h3>
+                <div className="flex gap-2">
+                  <button
+                    className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
+                    onClick={() =>
+                      handleCopyJSON({
+                        nullifier: commitmentData.nullifier,
+                        secret: commitmentData.secret,
+                        index: commitmentData.index,
+                      })
+                    }
+                  >
+                    {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-base-300 p-3">
+                  <div className="text-xs opacity-70 mb-1">Commitment</div>
+                  <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.commitment}</code>
+                </div>
+                <div className="rounded-lg border border-base-300 p-3">
+                  <div className="text-xs opacity-70 mb-1">Nullifier</div>
+                  <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.nullifier}</code>
+                </div>
+                <div className="rounded-lg border border-base-300 p-3">
+                  <div className="text-xs opacity-70 mb-1">Secret</div>
+                  <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.secret}</code>
+                </div>
+              </div>
+
+              {isInserted && (
+                <div className="alert alert-warning">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">Save your nullifier and secret now</h3>
+                      {!isAlertCollapsed && (
+                        <p className="text-sm opacity-80">
+                          These values are required to generate your ZK proof later. They cannot be recovered if lost.
+                        </p>
+                      )}
+                    </div>
+                    <button className="btn btn-ghost btn-xs" onClick={() => setIsAlertCollapsed(!isAlertCollapsed)}>
+                      {isAlertCollapsed ? "▼" : "▲"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

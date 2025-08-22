@@ -9,8 +9,9 @@ import { EntryPointVersion, entryPoint07Address } from "viem/account-abstraction
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { Address } from "~~/components/scaffold-eth";
-import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { useCopyToClipboard, useDeployedContractInfo } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
+import { notification } from "~~/utils/scaffold-eth";
 
 // This would come from your environment variables in production
 const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
@@ -31,6 +32,7 @@ export const VoteWithBurnerPaymaster = ({ contractAddress }: { contractAddress?:
   const { proofData } = useGlobalState();
   const [importJsonText, setImportJsonText] = useState<string>("");
   const [importJsonError, setImportJsonError] = useState<string>("");
+  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
 
   const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
 
@@ -54,6 +56,42 @@ export const VoteWithBurnerPaymaster = ({ contractAddress }: { contractAddress?:
       bytes[i / 2] = parseInt(normalized.slice(i, i + 2), 16);
     }
     return bytes;
+  };
+
+  const handleCopyProofJSON = async () => {
+    if (!proofData) return;
+
+    try {
+      // Convert Uint8Array to regular array for JSON serialization
+      const proofArray = Array.from(proofData.proof);
+      const proofJson = {
+        proof: proofArray,
+        publicInputs: proofData.publicInputs,
+        proofHex: uint8ArrayToHexString(proofData.proof),
+        publicInputsHex: proofData.publicInputs.map((input: any) => {
+          if (typeof input === "string" && input.startsWith("0x")) {
+            return input;
+          }
+          if (typeof input === "boolean") {
+            return `0x${(input ? 1n : 0n).toString(16).padStart(64, "0")}`;
+          }
+          if (typeof input === "number") {
+            return `0x${BigInt(input).toString(16).padStart(64, "0")}`;
+          }
+          if (typeof input === "string") {
+            return `0x${BigInt(input).toString(16).padStart(64, "0")}`;
+          }
+          return input;
+        }),
+      };
+
+      const jsonStr = JSON.stringify(proofJson, null, 2);
+      await copyToClipboard(jsonStr);
+      notification.success("Proof data copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy proof:", error);
+      notification.error("Failed to copy proof data");
+    }
   };
 
   const createSmartAccount = async () => {
@@ -194,6 +232,36 @@ export const VoteWithBurnerPaymaster = ({ contractAddress }: { contractAddress?:
       {txStatus === "error" && (
         <div className="alert alert-error">
           <span>Error casting vote. Please try again.</span>
+        </div>
+      )}
+
+      {/* Current Proof Data */}
+      {proofData && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">Current Proof Data</span>
+            <button
+              type="button"
+              className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
+              onClick={handleCopyProofJSON}
+            >
+              {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-lg border border-base-300 p-3">
+              <div className="text-xs opacity-70 mb-1">Proof (Hex)</div>
+              <code className="text-xs break-all bg-base-200 p-2 rounded block">
+                {uint8ArrayToHexString(proofData.proof)}
+              </code>
+            </div>
+            <div className="rounded-lg border border-base-300 p-3">
+              <div className="text-xs opacity-70 mb-1">Public Inputs</div>
+              <code className="text-xs break-all bg-base-200 p-2 rounded block">
+                {JSON.stringify(proofData.publicInputs, null, 2)}
+              </code>
+            </div>
+          </div>
         </div>
       )}
 
