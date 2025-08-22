@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useAccount } from "wagmi";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 
 interface CommitmentData {
@@ -17,13 +18,32 @@ interface CommitmentData {
 interface CreateCommitmentProps {
   leafEvents?: any[];
   contractAddress?: `0x${string}`;
+  compact?: boolean;
 }
 
-export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCommitmentProps) => {
+export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = false }: CreateCommitmentProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
   const [isInserted, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
+
+  const { address: walletAddress, isConnected } = useAccount();
+
+  const { data: isVoter } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "s_voters",
+    args: [walletAddress],
+    address: contractAddress,
+  });
+
+  const { data: hasRegistered } = (useScaffoldReadContract as any)({
+    contractName: "Voting",
+    functionName: "s_hasRegistered",
+    args: [walletAddress],
+    address: contractAddress,
+  });
+
+  const canRegister = Boolean(isConnected && isVoter !== false && hasRegistered !== true);
 
   const { writeContractAsync } = useScaffoldWriteContract({
     contractName: "Voting",
@@ -38,8 +58,10 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCom
     try {
       const data = await generateCommitment();
       setCommitmentData(data);
+      return data;
     } catch (error) {
       console.error("Error generating commitment:", error);
+      throw error;
     } finally {
       setIsGenerating(false);
     }
@@ -50,22 +72,23 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCom
     navigator.clipboard.writeText(jsonStr);
   };
 
-  const handleInsertCommitment = async () => {
-    if (!commitmentData) return;
+  const handleInsertCommitment = async (dataOverride?: CommitmentData) => {
+    const localData = dataOverride || commitmentData;
+    if (!localData) return;
 
     setIsInserting(true);
     try {
       await writeContractAsync(
         {
           functionName: "insert",
-          args: [BigInt(commitmentData.commitment)],
+          args: [BigInt(localData.commitment)],
         },
         {
           blockConfirmations: 1,
           onBlockConfirmation: () => {
             if (leafEvents) {
               const newIndex = leafEvents.length;
-              setCommitmentData({ ...commitmentData, index: newIndex });
+              setCommitmentData({ ...localData, index: newIndex });
               setIsInserted(true);
             }
           },
@@ -78,23 +101,25 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCom
     }
   };
 
+  const handleRegister = async () => {
+    const data = await handleGenerateCommitment();
+    await handleInsertCommitment(data);
+  };
+
   return (
     <div className="bg-base-100 shadow rounded-xl p-6 space-y-5">
       <div className="space-y-1">
-        <h2 className="text-2xl font-bold">Step 1 — Register & insert commitment</h2>
-        <p className="text-sm opacity-70">Generate your anonymous identifier and insert it into the Merkle tree.</p>
+        <h2 className="text-2xl font-bold">Register for this vote</h2>
+        {!compact && (
+          <p className="text-sm opacity-70">Generate your anonymous identifier and insert it into the Merkle tree.</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
         <button
           className="btn btn-primary btn-lg"
-          onClick={async () => {
-            await handleGenerateCommitment();
-            if (commitmentData) {
-              await handleInsertCommitment();
-            }
-          }}
-          disabled={isGenerating || isInserting}
+          onClick={handleRegister}
+          disabled={isGenerating || isInserting || !canRegister}
         >
           {isGenerating ? (
             <>
@@ -106,14 +131,19 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress }: CreateCom
               <span className="loading loading-spinner loading-sm"></span>
               Inserting into Merkle tree...
             </>
+          ) : !isConnected ? (
+            "Connect wallet"
+          ) : isVoter === false ? (
+            "Not on voters list"
+          ) : hasRegistered === true ? (
+            "Already registered"
           ) : (
-            "Generate & insert commitment"
+            "Register"
           )}
         </button>
-        <p className="text-xs opacity-70">This action will request a transaction to store your commitment on-chain.</p>
       </div>
 
-      {commitmentData && (
+      {!compact && commitmentData && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-lg font-semibold">Generated commitment data</h3>

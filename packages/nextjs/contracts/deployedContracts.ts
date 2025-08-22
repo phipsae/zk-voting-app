@@ -1567,7 +1567,7 @@ const deployedContracts = {
       deployedOnBlock: 29887973,
     },
     VotingFactory: {
-      address: "0x1BBc2abC85646A2D08FA1926dcDD75257A6e47a7",
+      address: "0x20170De392C8E8b101C4284E4798E5245D5Bc66f",
       abi: [
         {
           inputs: [
@@ -1677,7 +1677,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 29884412,
+      deployedOnBlock: 30056185,
     },
   },
 } as const;

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
+import { getAddress } from "viem";
 import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -72,11 +73,16 @@ const ListVotings = () => {
     // Add items from GraphQL data (Ponder indexer)
     if (votingsData) {
       for (const evt of votingsData.votingss.items.filter(Boolean)) {
-        const votingAddr = evt.address as `0x${string}` | undefined;
-        if (!votingAddr) continue;
+        const rawVotingAddr = evt.address as `0x${string}` | undefined;
+        if (!rawVotingAddr) continue;
+        const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;
+        const creatorAddr = evt.creator
+          ? (getAddress(evt.creator as `0x${string}`) as `0x${string}`)
+          : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
+
         const item: VotingItem = {
           voting: votingAddr,
-          creator: (evt.creator as `0x${string}`) || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+          creator: creatorAddr,
           question: evt.question || "",
           blockNumber: BigInt(evt.createdAtBlock),
           transactionHash: undefined,
@@ -88,18 +94,19 @@ const ListVotings = () => {
     // Add items from real-time events (for immediate updates)
     if (events) {
       for (const event of events) {
-        // Check if event and event.args exist
         if (!event || !event.args) continue;
 
-        const votingAddr = event.args.voting as `0x${string}`;
-        if (!votingAddr) continue;
+        const rawVotingAddr = event.args.voting as `0x${string}` | undefined;
+        if (!rawVotingAddr) continue;
+        const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;
+        const creatorAddr = event.args.creator
+          ? (getAddress(event.args.creator as `0x${string}`) as `0x${string}`)
+          : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
 
-        // Only add if not already present from GraphQL (avoid duplicates)
         if (!byAddress.has(votingAddr)) {
           const item: VotingItem = {
             voting: votingAddr,
-            creator:
-              (event.args.creator as `0x${string}`) || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+            creator: creatorAddr,
             question: (event.args.question as string) || "",
             blockNumber: event.blockNumber || 0n,
             transactionHash: event.transactionHash,
@@ -141,7 +148,7 @@ const ListVotings = () => {
       {votings.length === 0 ? (
         <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">No votings created yet.</div>
       ) : (
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {votings.map(v => (
             <li key={v.voting} className="bg-base-100 rounded-xl p-5 border border-base-300">
               <div className="space-y-3">

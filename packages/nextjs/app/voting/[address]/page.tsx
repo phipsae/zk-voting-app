@@ -6,13 +6,10 @@ import { VoteChoice } from "../_components/VoteChoice";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
+import { CombinedVoteBurnerPaymaster } from "~~/app/voting/_components/CombinedVoteBurnerPaymaster";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
-import { GenerateProof } from "~~/app/voting/_components/GenerateProof";
-import { LeafEventsList } from "~~/app/voting/_components/LeafEventsList";
-import MerkleTreeData from "~~/app/voting/_components/MerkleTreeData";
-import { VoteWithBurnerHardhat } from "~~/app/voting/_components/VoteWithBurnerHardhat";
-import { VoteWithBurnerPaymaster } from "~~/app/voting/_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
+import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 type LeafRow = { index: string; value: string };
@@ -86,37 +83,41 @@ export default function VotingByAddressPage() {
       <div className="px-4 sm:px-5 w-full max-w-7xl mx-auto">
         <h1 className="text-center">
           {question && <span className="block text-3xl font-bold tracking-tight">{question}</span>}
-          {address && <span className="block text-sm mt-1 opacity-70">{address}</span>}
+          {address && (
+            <div className="flex justify-center">
+              <Address address={address} />
+            </div>
+          )}
         </h1>
 
         {!enabled ? (
           <div className="mt-6 text-sm opacity-70">No voting address in URL.</div>
         ) : (
           <>
-            <div className="mt-3 flex items-center gap-3 text-sm opacity-70">
-              {isLoading ? "Loading…" : isFetching ? "Refreshing…" : "Up to date"}
-              <button className="underline" onClick={() => refetch()}>
-                Refresh now
-              </button>
-              <button className="underline" onClick={() => console.log(leavesEvents)}>
-                Log leavesEvents
-              </button>
+            <div className="mt-3 flex items-center justify-between text-sm opacity-70">
+              <div className="flex items-center gap-3">
+                {isLoading ? "Loading…" : isFetching ? "Refreshing…" : "Up to date"}
+                <button className="underline" onClick={() => refetch()}>
+                  Refresh now
+                </button>
+              </div>
+              {address && (
+                <a className="underline" href={`/voting/${address}/debug`}>
+                  Advanced / Debug page
+                </a>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
               <div className="lg:col-span-5 space-y-4">
                 <VotingStats contractAddress={address} />
                 {address && <AddVotersModal contractAddress={address} />}
-                <MerkleTreeData contractAddress={address as `0x${string}`} leafEvents={leavesEvents} />
-                <LeafEventsList leafEvents={leavesEvents} />
               </div>
 
               <div className="lg:col-span-7 space-y-4">
-                <CreateCommitment leafEvents={leavesEvents} contractAddress={address} />
+                <CreateCommitment compact leafEvents={leavesEvents} contractAddress={address} />
                 <VoteChoice />
-                <GenerateProof leafEvents={leavesEvents} contractAddress={address} />
-                <VoteWithBurnerPaymaster contractAddress={address} />
-                <VoteWithBurnerHardhat contractAddress={address} />
+                <CombinedVoteBurnerPaymaster contractAddress={address} leafEvents={leavesEvents} />
               </div>
             </div>
           </>

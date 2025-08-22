@@ -19,9 +19,9 @@ contract Voting is Ownable {
     // so that the proof cannot be replayed - and a person can only vote once
     mapping(bytes32 => bool) public s_nullifierHashes;
     mapping(address => bool) public s_voters;
+    mapping(address => bool) public s_hasRegistered;
 
     LeanIMTData public tree;
-    // TODO: change to question
     uint256 public yesVotes;
     uint256 public noVotes;
 
@@ -34,6 +34,7 @@ contract Voting is Ownable {
         uint256 totalYes,
         uint256 totalNo
     );
+    event VoterAdded(address indexed voter);
 
     error Voting__CommitmentAlreadyAdded(uint256 commitment);
     error Voting__NullifierHashAlreadyUsed(bytes32 nullifierHash);
@@ -50,17 +51,19 @@ contract Voting is Ownable {
 
         for (uint256 i = 0; i < voters.length; i++) {
             s_voters[voters[i]] = statuses[i];
+            emit VoterAdded(voters[i]);
         }
     }
 
     function insert(uint256 _commitment) public {
-        // if (!s_voters[msg.sender]) {
-        //     revert Voting__NotAllowedToVote();
-        // }
+        if (!s_voters[msg.sender] || s_hasRegistered[msg.sender]) {
+            revert Voting__NotAllowedToVote();
+        }
         if (s_commitments[_commitment]) {
             revert Voting__CommitmentAlreadyAdded(_commitment);
         }
         s_commitments[_commitment] = true;
+        s_hasRegistered[msg.sender] = true;
         tree.insert(_commitment);
         emit NewLeaf(tree.size - 1, _commitment);
     }
