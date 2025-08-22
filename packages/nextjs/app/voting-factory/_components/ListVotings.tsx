@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { Address } from "~~/components/scaffold-eth";
+import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
 // import { useScaffoldEventHistory } from "~~/hooks/scaffold-eth";
 
@@ -17,15 +18,14 @@ type VotingItem = {
 };
 
 const ListVotings = () => {
-  // const {
-  //   data: events,
-  //   isLoading,
-  //   error,
-  // } = useScaffoldEventHistory({
-  //   contractName: "VotingFactory",
-  //   eventName: "VotingCreated",
-  //   watch: true,
-  // });
+  const queryClient = useQueryClient();
+
+  // Watch for real-time VotingCreated events
+  const { data: events, isLoading: eventsLoading } = useScaffoldEventHistory({
+    contractName: "VotingFactory",
+    eventName: "VotingCreated",
+    watch: true,
+  });
 
   type VotingEvent = {
     address: `0x${string}`;
@@ -63,27 +63,65 @@ const ListVotings = () => {
   } = useQuery({
     queryKey: ["votings"],
     queryFn: fetchVotings,
+    refetchInterval: 5000, // Refetch every 5 seconds as fallback
   });
 
   const votings: VotingItem[] = useMemo(() => {
-    if (!votingsData) return [];
-
     const byAddress = new Map<string, VotingItem>();
-    for (const evt of votingsData.votingss.items.filter(Boolean)) {
-      const votingAddr = evt.address as `0x${string}` | undefined;
-      if (!votingAddr) continue;
-      const item: VotingItem = {
-        voting: votingAddr,
-        creator: (evt.creator as `0x${string}`) || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
-        question: evt.question || "",
-        blockNumber: BigInt(evt.createdAtBlock),
-        transactionHash: undefined,
-      };
-      byAddress.set(votingAddr, item);
+
+    // Add items from GraphQL data (Ponder indexer)
+    if (votingsData) {
+      for (const evt of votingsData.votingss.items.filter(Boolean)) {
+        const votingAddr = evt.address as `0x${string}` | undefined;
+        if (!votingAddr) continue;
+        const item: VotingItem = {
+          voting: votingAddr,
+          creator: (evt.creator as `0x${string}`) || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+          question: evt.question || "",
+          blockNumber: BigInt(evt.createdAtBlock),
+          transactionHash: undefined,
+        };
+        byAddress.set(votingAddr, item);
+      }
+    }
+
+    // Add items from real-time events (for immediate updates)
+    if (events) {
+      for (const event of events) {
+        // Check if event and event.args exist
+        if (!event || !event.args) continue;
+
+        const votingAddr = event.args.voting as `0x${string}`;
+        if (!votingAddr) continue;
+
+        // Only add if not already present from GraphQL (avoid duplicates)
+        if (!byAddress.has(votingAddr)) {
+          const item: VotingItem = {
+            voting: votingAddr,
+            creator:
+              (event.args.creator as `0x${string}`) || ("0x0000000000000000000000000000000000000000" as `0x${string}`),
+            question: (event.args.question as string) || "",
+            blockNumber: event.blockNumber || 0n,
+            transactionHash: event.transactionHash,
+          };
+          byAddress.set(votingAddr, item);
+        }
+      }
     }
 
     return Array.from(byAddress.values()).sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)));
-  }, [votingsData]);
+  }, [votingsData, events]);
+
+  // Keep track of the number of events to detect new ones
+  const prevEventCountRef = useRef(0);
+
+  useEffect(() => {
+    if (events && events.length > prevEventCountRef.current) {
+      // New events detected, invalidate and refetch the GraphQL query
+      queryClient.invalidateQueries({ queryKey: ["votings"] });
+      prevEventCountRef.current = events.length;
+    }
+  }, [events, queryClient]);
 
   if (isError) {
     return (
@@ -97,7 +135,7 @@ const ListVotings = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">All votings</h2>
-        {isPending && <span className="loading loading-spinner loading-sm" />}
+        {(isPending || eventsLoading) && <span className="loading loading-spinner loading-sm" />}
       </div>
 
       {votings.length === 0 ? (

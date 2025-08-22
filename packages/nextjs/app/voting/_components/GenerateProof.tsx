@@ -7,7 +7,7 @@ import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
-// Removed unused imports
+import circuitData from "~~/app/_components/circuits.json";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
@@ -49,14 +49,16 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
   const getCircuitDataAndGenerateProof = async () => {
     setIsLoading(true);
     try {
-      // First fetch circuit data
-      const response = await fetch("/api/circuit");
-      if (!response.ok) {
-        throw new Error("Failed to fetch circuit data");
-      }
-      const data = await response.json();
-      setCircuitData(data);
-      console.log("Circuit data:", data);
+      // // First fetch circuit data
+      // const response = await fetch("/api/circuit");
+      // if (!response.ok) {
+      //   throw new Error("Failed to fetch circuit data");
+      // }
+
+      // const data = await response.json();
+
+      setCircuitData(circuitData);
+      console.log("Circuit data:", circuitData);
 
       // Determine effective values: prefer user input, else fall back to stored commitmentData
       const effectiveNullifier = (nullifierInput?.trim() || commitmentData?.nullifier)?.trim();
@@ -85,7 +87,7 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
         effectiveSecret,
         effectiveIndex as number,
         leafEvents as any,
-        data,
+        circuitData,
       );
       setProofData({
         proof: generatedProof.proof,

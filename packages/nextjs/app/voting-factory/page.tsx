@@ -12,10 +12,16 @@ const VotingFactory: NextPage = () => {
 
   const [question, setQuestion] = useState("");
   const handleCreateVoting = async () => {
-    await writeVotingAsync({
-      functionName: "createVoting",
-      args: [question],
-    });
+    try {
+      await writeVotingAsync({
+        functionName: "createVoting",
+        args: [question],
+      });
+      // Clear the question after successful creation
+      setQuestion("");
+    } catch (error) {
+      console.error("Failed to create voting:", error);
+    }
   };
 
   return (
@@ -37,7 +43,7 @@ const VotingFactory: NextPage = () => {
             value={question}
             onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => {
-              if (e.key === "Enter" && !isMining) {
+              if (e.key === "Enter" && !isMining && question.trim()) {
                 void handleCreateVoting();
               }
             }}
@@ -45,7 +51,7 @@ const VotingFactory: NextPage = () => {
           />
         </label>
 
-        <button className="btn btn-primary" onClick={handleCreateVoting} disabled={isMining}>
+        <button className="btn btn-primary" onClick={handleCreateVoting} disabled={isMining || !question.trim()}>
           {isMining ? (
             <>
               <span className="loading loading-spinner loading-sm"></span>
