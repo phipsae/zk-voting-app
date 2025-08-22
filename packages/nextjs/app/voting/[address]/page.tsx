@@ -13,6 +13,7 @@ import MerkleTreeData from "~~/app/voting/_components/MerkleTreeData";
 import { VoteWithBurnerHardhat } from "~~/app/voting/_components/VoteWithBurnerHardhat";
 import { VoteWithBurnerPaymaster } from "~~/app/voting/_components/VoteWithBurnerPaymaster";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 type LeafRow = { index: string; value: string };
 type LeavesData = { leavess: { items: LeafRow[] } };
@@ -52,6 +53,12 @@ export default function VotingByAddressPage() {
     refetchInterval: 2000,
   });
 
+  const { data: question } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "question",
+    address: address,
+  });
+
   // Map GraphQL rows -> viem-like event array your components use
   const leavesEvents = useMemo(
     () =>
@@ -78,7 +85,7 @@ export default function VotingByAddressPage() {
     <div className="flex items-start flex-col grow pt-6 w-full">
       <div className="px-4 sm:px-5 w-full max-w-7xl mx-auto">
         <h1 className="text-center">
-          <span className="block text-3xl font-bold tracking-tight">Voting</span>
+          {question && <span className="block text-3xl font-bold tracking-tight">{question}</span>}
           {address && <span className="block text-sm mt-1 opacity-70">{address}</span>}
         </h1>
 
