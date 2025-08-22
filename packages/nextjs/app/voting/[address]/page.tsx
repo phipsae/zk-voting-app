@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { VoteChoice } from "../_components/VoteChoice";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
+import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
 import { GenerateProof } from "~~/app/voting/_components/GenerateProof";
 import { LeafEventsList } from "~~/app/voting/_components/LeafEventsList";
@@ -98,6 +99,7 @@ export default function VotingByAddressPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-6">
               <div className="lg:col-span-5 space-y-4">
                 <VotingStats contractAddress={address} />
+                {address && <AddVotersModal contractAddress={address} />}
                 <MerkleTreeData contractAddress={address as `0x${string}`} leafEvents={leavesEvents} />
                 <LeafEventsList leafEvents={leavesEvents} />
               </div>
