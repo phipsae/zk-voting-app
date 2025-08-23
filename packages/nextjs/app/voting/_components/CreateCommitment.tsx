@@ -7,6 +7,7 @@ import { poseidon2 } from "poseidon-lite";
 import { useAccount } from "wagmi";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
+import { saveCommitmentToLocalStorage } from "~~/utils/scaffold-eth";
 
 interface CommitmentData {
   commitment: string;
@@ -83,8 +84,12 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
           onBlockConfirmation: () => {
             if (leafEvents) {
               const newIndex = leafEvents.length;
-              setCommitmentData({ ...localData, index: newIndex });
+              const updatedData = { ...localData, index: newIndex };
+              setCommitmentData(updatedData);
               setIsInserted(true);
+
+              // Save commitment data to localStorage after successful insertion
+              saveCommitmentToLocalStorage(updatedData, contractAddress, walletAddress);
             }
           },
         },

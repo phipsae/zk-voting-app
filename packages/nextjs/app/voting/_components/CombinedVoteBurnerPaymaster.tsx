@@ -15,7 +15,12 @@ import { baseSepolia } from "viem/chains";
 import { useAccount } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
-import { hasStoredProof, notification, saveProofToLocalStorage } from "~~/utils/scaffold-eth";
+import {
+  hasStoredProof,
+  loadCommitmentFromLocalStorage,
+  notification,
+  saveProofToLocalStorage,
+} from "~~/utils/scaffold-eth";
 
 export const CombinedVoteBurnerPaymaster = ({
   contractAddress,
@@ -24,11 +29,12 @@ export const CombinedVoteBurnerPaymaster = ({
   contractAddress?: `0x${string}`;
   leafEvents?: any[];
 }) => {
-  const { commitmentData, voteChoice, setVoteChoice, setProofData } = useGlobalState();
+  const { commitmentData, voteChoice, setVoteChoice, setProofData, setCommitmentData } = useGlobalState();
   // const { proofData } = useGlobalState();
   const [isSubmitting, setIsSubmitting] = useState(false);
   // const [isProofAlertCollapsed, setIsProofAlertCollapsed] = useState(true);
   const [hasStoredProofData, setHasStoredProofData] = useState(false);
+  const [loadedCommitmentData, setLoadedCommitmentData] = useState<any>(null);
   // const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
   const { address: userAddress, isConnected } = useAccount();
 
@@ -69,6 +75,21 @@ export const CombinedVoteBurnerPaymaster = ({
   useEffect(() => {
     setHasStoredProofData(hasStoredProof(contractAddress, userAddress));
   }, [contractAddress, userAddress]);
+
+  // Load commitment data from localStorage on mount or when contract/user changes
+  useEffect(() => {
+    if (contractAddress && userAddress) {
+      const storedCommitmentData = loadCommitmentFromLocalStorage(contractAddress, userAddress);
+      if (storedCommitmentData) {
+        setLoadedCommitmentData(storedCommitmentData);
+        // If global state doesn't have commitment data, set it from localStorage
+        if (!commitmentData) {
+          setCommitmentData(storedCommitmentData);
+        }
+        console.log("Loaded commitment data from localStorage:", storedCommitmentData);
+      }
+    }
+  }, [contractAddress, userAddress, commitmentData, setCommitmentData]);
 
   // Pimlico + ERC-4337 setup (mirrors VoteWithBurnerPaymaster)
   const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
@@ -132,7 +153,15 @@ export const CombinedVoteBurnerPaymaster = ({
       setIsSubmitting(true);
 
       if (voteChoice === null) throw new Error("Please select Yes or No first");
-      if (!commitmentData?.nullifier || !commitmentData?.secret || commitmentData?.index === undefined)
+
+      // Use commitment data from global state or loaded from localStorage as fallback
+      const activeCommitmentData = commitmentData || loadedCommitmentData;
+
+      if (
+        !activeCommitmentData?.nullifier ||
+        !activeCommitmentData?.secret ||
+        activeCommitmentData?.index === undefined
+      )
         throw new Error("Please register first. Missing commitment data.");
       if (!leafEvents || leafEvents.length === 0)
         throw new Error("There are no commitments yet. Please register your commitment first.");
@@ -146,9 +175,9 @@ export const CombinedVoteBurnerPaymaster = ({
         root as bigint,
         voteChoice,
         depth,
-        commitmentData.nullifier,
-        commitmentData.secret,
-        commitmentData.index as number,
+        activeCommitmentData.nullifier,
+        activeCommitmentData.secret,
+        activeCommitmentData.index as number,
         leafEvents,
         circuitData,
       );
@@ -197,6 +226,28 @@ export const CombinedVoteBurnerPaymaster = ({
 
   return (
     <div className="bg-base-100 shadow rounded-xl p-6 space-y-6">
+      {/* Commitment Data Status */}
+      {loadedCommitmentData && !commitmentData && (
+        <div className="alert alert-info">
+          <div className="flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              className="stroke-current shrink-0 w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            <span className="text-sm">Using commitment data from previous session</span>
+          </div>
+        </div>
+      )}
+
       {/* Vote Choice Section */}
       <div className="space-y-4">
         <div className="space-y-1 text-center">
