@@ -16,6 +16,7 @@ import { useAccount } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import {
+  getStoredProofMetadata,
   hasStoredProof,
   loadCommitmentFromLocalStorage,
   notification,
@@ -34,6 +35,7 @@ export const CombinedVoteBurnerPaymaster = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   // const [isProofAlertCollapsed, setIsProofAlertCollapsed] = useState(true);
   const [hasStoredProofData, setHasStoredProofData] = useState(false);
+  const [storedVoteChoice, setStoredVoteChoice] = useState<boolean | null>(null);
   const [loadedCommitmentData, setLoadedCommitmentData] = useState<any>(null);
   // const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
   const { address: userAddress, isConnected } = useAccount();
@@ -73,7 +75,17 @@ export const CombinedVoteBurnerPaymaster = ({
 
   // Check for stored proof data on mount and when user/contract changes
   useEffect(() => {
-    setHasStoredProofData(hasStoredProof(contractAddress, userAddress));
+    const hasProof = hasStoredProof(contractAddress, userAddress);
+    setHasStoredProofData(hasProof);
+
+    // If there's a stored proof, get the vote choice
+    if (hasProof) {
+      const storedProofMetadata = getStoredProofMetadata(contractAddress, userAddress);
+      setStoredVoteChoice(storedProofMetadata?.voteChoice ?? null);
+    } else {
+      setStoredVoteChoice(null);
+    }
+
     // Reset submission state when address changes
     setIsSubmitting(false);
   }, [contractAddress, userAddress]);
@@ -178,6 +190,7 @@ export const CombinedVoteBurnerPaymaster = ({
         userAddress,
       );
       setHasStoredProofData(true);
+      setStoredVoteChoice(voteChoice);
 
       // Build calldata for Voting.vote
       const proofHex = uint8ArrayToHexString(generated.proof);
@@ -234,30 +247,42 @@ export const CombinedVoteBurnerPaymaster = ({
         </div>
       )}
 
-      {/* Vote Choice Section */}
       <div className="space-y-4">
         <div className="space-y-1 text-center">
           <h2 className="text-2xl font-bold">Choose your vote</h2>
         </div>
         <div className="flex gap-3 justify-center">
           <button
-            className={`btn btn-lg ${voteChoice === true ? "btn-success" : "btn-outline"} ${!canVote ? "btn-disabled" : ""}`}
-            onClick={canVote ? () => setVoteChoice(true) : undefined}
-            disabled={!canVote}
+            className={`btn btn-lg ${
+              voteChoice === true
+                ? "btn-success"
+                : hasStoredProofData && storedVoteChoice === true
+                  ? "btn-success"
+                  : "btn-outline"
+            } ${!canVote && !hasStoredProofData ? "btn-disabled" : ""}`}
+            style={hasStoredProofData ? { pointerEvents: "none", cursor: "not-allowed" } : {}}
+            onClick={canVote && !hasStoredProofData ? () => setVoteChoice(true) : undefined}
+            disabled={!canVote && !hasStoredProofData}
           >
             Yes
           </button>
           <button
-            className={`btn btn-lg ${voteChoice === false ? "btn-error" : "btn-outline"} ${!canVote ? "btn-disabled" : ""}`}
-            onClick={canVote ? () => setVoteChoice(false) : undefined}
-            disabled={!canVote}
+            className={`btn btn-lg ${
+              voteChoice === false
+                ? "btn-error"
+                : hasStoredProofData && storedVoteChoice === false
+                  ? "btn-error"
+                  : "btn-outline"
+            } ${!canVote && !hasStoredProofData ? "btn-disabled" : ""}`}
+            style={hasStoredProofData ? { pointerEvents: "none", cursor: "not-allowed" } : {}}
+            onClick={canVote && !hasStoredProofData ? () => setVoteChoice(false) : undefined}
+            disabled={!canVote && !hasStoredProofData}
           >
             No
           </button>
         </div>
       </div>
 
-      {/* Divider */}
       <div className="divider"></div>
 
       <div className="flex justify-center">
@@ -267,7 +292,7 @@ export const CombinedVoteBurnerPaymaster = ({
           disabled={isSubmitting || voteChoice === null || hasStoredProofData || !canVote}
         >
           {hasStoredProofData
-            ? "✓ Already voted"
+            ? `✓ Already voted with ${storedVoteChoice === true ? "YES" : storedVoteChoice === false ? "NO" : ""}`
             : isSubmitting
               ? "Generating & submitting..."
               : !canVote
