@@ -5,9 +5,8 @@ import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
 import { useAccount } from "wagmi";
-import { useCopyToClipboard, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
-import { notification } from "~~/utils/scaffold-eth";
 
 interface CommitmentData {
   commitment: string;
@@ -25,10 +24,8 @@ interface CreateCommitmentProps {
 export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = false }: CreateCommitmentProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isInserting, setIsInserting] = useState(false);
-  const [isInserted, setIsInserted] = useState(false);
-  const [isAlertCollapsed, setIsAlertCollapsed] = useState(true);
+  const [, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
-  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
 
   const { address: walletAddress, isConnected } = useAccount();
 
@@ -67,17 +64,6 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
       throw error;
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handleCopyJSON = async (data: any) => {
-    try {
-      const jsonStr = JSON.stringify(data, null, 2);
-      await copyToClipboard(jsonStr);
-      notification.success("Commitment data copied to clipboard");
-    } catch (error) {
-      console.error("Failed to copy:", error);
-      notification.error("Failed to copy data");
     }
   };
 
@@ -159,103 +145,6 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
           )}
         </button>
       </div>
-
-      {commitmentData && (
-        <div className="space-y-4">
-          {compact ? (
-            // Compact mode: Only show when inserted
-            isInserted && (
-              <div className="alert alert-warning">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">Save your nullifier and secret now</h3>
-                      {!isAlertCollapsed && (
-                        <p className="text-sm opacity-80">
-                          These values are required to generate your ZK proof later. They cannot be recovered if lost.
-                        </p>
-                      )}
-                    </div>
-                    <button className="btn btn-ghost btn-xs" onClick={() => setIsAlertCollapsed(!isAlertCollapsed)}>
-                      {isAlertCollapsed ? "▼" : "▲"}
-                    </button>
-                  </div>
-                  {!isAlertCollapsed && (
-                    <div className="flex gap-2">
-                      <button
-                        className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
-                        onClick={() =>
-                          handleCopyJSON({
-                            nullifier: commitmentData.nullifier,
-                            secret: commitmentData.secret,
-                            index: commitmentData.index,
-                          })
-                        }
-                      >
-                        {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          ) : (
-            // Full mode: Show everything
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-lg font-semibold">Generated commitment data</h3>
-                <div className="flex gap-2">
-                  <button
-                    className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
-                    onClick={() =>
-                      handleCopyJSON({
-                        nullifier: commitmentData.nullifier,
-                        secret: commitmentData.secret,
-                        index: commitmentData.index,
-                      })
-                    }
-                  >
-                    {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-base-300 p-3">
-                  <div className="text-xs opacity-70 mb-1">Commitment</div>
-                  <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.commitment}</code>
-                </div>
-                <div className="rounded-lg border border-base-300 p-3">
-                  <div className="text-xs opacity-70 mb-1">Nullifier</div>
-                  <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.nullifier}</code>
-                </div>
-                <div className="rounded-lg border border-base-300 p-3">
-                  <div className="text-xs opacity-70 mb-1">Secret</div>
-                  <code className="text-xs break-all bg-base-200 p-2 rounded block">{commitmentData.secret}</code>
-                </div>
-              </div>
-
-              {isInserted && (
-                <div className="alert alert-warning">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">Save your nullifier and secret now</h3>
-                      {!isAlertCollapsed && (
-                        <p className="text-sm opacity-80">
-                          These values are required to generate your ZK proof later. They cannot be recovered if lost.
-                        </p>
-                      )}
-                    </div>
-                    <button className="btn btn-ghost btn-xs" onClick={() => setIsAlertCollapsed(!isAlertCollapsed)}>
-                      {isAlertCollapsed ? "▼" : "▲"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 };

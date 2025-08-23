@@ -12,7 +12,8 @@ import { createPublicClient, encodeFunctionData, http } from "viem";
 import { EntryPointVersion, entryPoint07Address } from "viem/account-abstraction";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
-import { useCopyToClipboard, useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useAccount } from "wagmi";
+import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { hasStoredProof, notification, saveProofToLocalStorage } from "~~/utils/scaffold-eth";
 
@@ -23,11 +24,13 @@ export const CombinedVoteBurnerPaymaster = ({
   contractAddress?: `0x${string}`;
   leafEvents?: any[];
 }) => {
-  const { commitmentData, voteChoice, setVoteChoice, setProofData, proofData } = useGlobalState();
+  const { commitmentData, voteChoice, setVoteChoice, setProofData } = useGlobalState();
+  // const { proofData } = useGlobalState();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isProofAlertCollapsed, setIsProofAlertCollapsed] = useState(true);
+  // const [isProofAlertCollapsed, setIsProofAlertCollapsed] = useState(true);
   const [hasStoredProofData, setHasStoredProofData] = useState(false);
-  const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
+  // const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
+  const { address: userAddress, isConnected } = useAccount();
 
   const { data: treeData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -41,14 +44,31 @@ export const CombinedVoteBurnerPaymaster = ({
     address: contractAddress,
   });
 
+  const { data: isVoter } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "isVoter",
+    args: [userAddress],
+    address: contractAddress,
+  });
+
+  const { data: hasRegistered } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "hasRegistered",
+    args: [userAddress],
+    address: contractAddress,
+  });
+
   const depth = useMemo(() => Number((treeData as readonly [bigint, bigint] | undefined)?.[1] ?? 0), [treeData]);
 
   const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
 
+  // Determine if user can vote
+  const canVote = Boolean(isConnected && isVoter === true && hasRegistered === true);
+
   // Check for stored proof data on mount
   useEffect(() => {
-    setHasStoredProofData(hasStoredProof(contractAddress));
-  }, [contractAddress]);
+    setHasStoredProofData(hasStoredProof(contractAddress, userAddress));
+  }, [contractAddress, userAddress]);
 
   // Pimlico + ERC-4337 setup (mirrors VoteWithBurnerPaymaster)
   const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
@@ -85,27 +105,27 @@ export const CombinedVoteBurnerPaymaster = ({
     return { smartAccountClient, accountAddress: account.address as `0x${string}` };
   };
 
-  const handleCopyProofJSON = async () => {
-    if (!proofData) return;
+  // const handleCopyProofJSON = async () => {
+  //   if (!proofData) return;
 
-    try {
-      // Convert Uint8Array to regular array for JSON serialization
-      const proofArray = Array.from(proofData.proof);
-      const proofJson = {
-        proof: proofArray,
-        publicInputs: proofData.publicInputs,
-        proofHex: uint8ArrayToHexString(proofData.proof),
-        publicInputsHex: normalizePublicInputsToHex32(proofData.publicInputs),
-      };
+  //   try {
+  //     // Convert Uint8Array to regular array for JSON serialization
+  //     const proofArray = Array.from(proofData.proof);
+  //     const proofJson = {
+  //       proof: proofArray,
+  //       publicInputs: proofData.publicInputs,
+  //       proofHex: uint8ArrayToHexString(proofData.proof),
+  //       publicInputsHex: normalizePublicInputsToHex32(proofData.publicInputs),
+  //     };
 
-      const jsonStr = JSON.stringify(proofJson, null, 2);
-      await copyToClipboard(jsonStr);
-      notification.success("Proof data copied to clipboard");
-    } catch (error) {
-      console.error("Failed to copy proof:", error);
-      notification.error("Failed to copy proof data");
-    }
-  };
+  //     const jsonStr = JSON.stringify(proofJson, null, 2);
+  //     await copyToClipboard(jsonStr);
+  //     notification.success("Proof data copied to clipboard");
+  //   } catch (error) {
+  //     console.error("Failed to copy proof:", error);
+  //     notification.error("Failed to copy proof data");
+  //   }
+  // };
 
   const handleGenerateAndVote = async () => {
     try {
@@ -140,6 +160,7 @@ export const CombinedVoteBurnerPaymaster = ({
         { proof: generated.proof, publicInputs: generated.publicInputs },
         contractAddress,
         voteChoice,
+        userAddress,
       );
       setHasStoredProofData(true);
 
@@ -183,14 +204,16 @@ export const CombinedVoteBurnerPaymaster = ({
         </div>
         <div className="flex gap-3 justify-center">
           <button
-            className={`btn btn-lg ${voteChoice === true ? "btn-success" : "btn-outline"}`}
-            onClick={() => setVoteChoice(true)}
+            className={`btn btn-lg ${voteChoice === true ? "btn-success" : "btn-outline"} ${!canVote ? "btn-disabled" : ""}`}
+            onClick={canVote ? () => setVoteChoice(true) : undefined}
+            disabled={!canVote}
           >
             Yes
           </button>
           <button
-            className={`btn btn-lg ${voteChoice === false ? "btn-error" : "btn-outline"}`}
-            onClick={() => setVoteChoice(false)}
+            className={`btn btn-lg ${voteChoice === false ? "btn-error" : "btn-outline"} ${!canVote ? "btn-disabled" : ""}`}
+            onClick={canVote ? () => setVoteChoice(false) : undefined}
+            disabled={!canVote}
           >
             No
           </button>
@@ -200,23 +223,23 @@ export const CombinedVoteBurnerPaymaster = ({
       {/* Divider */}
       <div className="divider"></div>
 
-      {/* Generate Proof and Vote Section */}
       <div className="flex justify-center">
         <button
-          className={`btn btn-lg ${hasStoredProofData ? "btn-success cursor-not-allowed" : "btn-primary"}`}
-          onClick={hasStoredProofData ? undefined : handleGenerateAndVote}
-          disabled={isSubmitting || voteChoice === null || hasStoredProofData}
+          className={`btn btn-lg ${hasStoredProofData ? "btn-success cursor-not-allowed" : !canVote ? "btn-disabled" : "btn-primary"}`}
+          onClick={hasStoredProofData || !canVote ? undefined : handleGenerateAndVote}
+          disabled={isSubmitting || voteChoice === null || hasStoredProofData || !canVote}
         >
           {hasStoredProofData
             ? "✓ Already voted"
             : isSubmitting
               ? "Generating & submitting..."
-              : "Generate proof and vote"}
+              : !canVote
+                ? "Must register first"
+                : "Vote"}
         </button>
       </div>
 
-      {/* Proof Data Section */}
-      {proofData && (
+      {/* {proofData && (
         <>
           <div className="divider"></div>
           <div className="space-y-4">
@@ -253,7 +276,7 @@ export const CombinedVoteBurnerPaymaster = ({
             </div>
           </div>
         </>
-      )}
+      )} */}
     </div>
   );
 };

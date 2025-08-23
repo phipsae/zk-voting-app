@@ -7,6 +7,7 @@ import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { ethers } from "ethers";
 import { poseidon1, poseidon2 } from "poseidon-lite";
+import { useAccount } from "wagmi";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification, saveProofToLocalStorage } from "~~/utils/scaffold-eth";
@@ -23,6 +24,7 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
   const [proofJsonText, setProofJsonText] = useState<string>("");
   const [importJsonText, setImportJsonText] = useState<string>("");
   const [importJsonError, setImportJsonError] = useState<string>("");
+  const { address: userAddress, isConnected } = useAccount();
 
   // Optional user-provided overrides for commitment data
   const [nullifierInput, setNullifierInput] = useState<string>("");
@@ -44,6 +46,25 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
     functionName: "getRoot",
     address: contractAddress,
   });
+
+  const { data: isVoter } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "isVoter",
+    args: [userAddress],
+    address: contractAddress,
+  });
+
+  const { data: hasRegistered } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "hasRegistered",
+    args: [userAddress],
+    address: contractAddress,
+  });
+
+  // Determine if user can vote
+  const canVote = Boolean(isConnected && isVoter === true && hasRegistered === true);
+  const isEligibleVoter = Boolean(isVoter === true);
+  const isRegistered = Boolean(hasRegistered === true);
 
   const getCircuitDataAndGenerateProof = async () => {
     setIsLoading(true);
@@ -96,6 +117,7 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
         { proof: generatedProof.proof, publicInputs: generatedProof.publicInputs },
         contractAddress,
         voteChoice,
+        userAddress,
       );
 
       // Build exportable JSON after setting state
@@ -196,14 +218,32 @@ export const GenerateProof = ({ contractAddress, leafEvents = [] }: CreateCommit
           <div className="text-xs opacity-70">If left empty, stored commitment values will be used.</div>
         </div>
 
+        {/* Registration Status Message */}
+        {!canVote && (
+          <div className="alert alert-warning">
+            <div className="flex flex-col">
+              <span className="font-semibold">Cannot generate proof</span>
+              <span className="text-sm">
+                {!isConnected
+                  ? "Please connect your wallet"
+                  : !isEligibleVoter
+                    ? "You are not on the voters list for this proposal"
+                    : !isRegistered
+                      ? "Please register first by generating and inserting your commitment"
+                      : "Unknown issue"}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={getCircuitDataAndGenerateProof}
-            disabled={isLoading}
+            className={`btn ${canVote ? "btn-primary" : "btn-disabled"}`}
+            onClick={canVote ? getCircuitDataAndGenerateProof : undefined}
+            disabled={isLoading || !canVote}
           >
-            {isLoading ? "Generating proof..." : "Generate proof"}
+            {isLoading ? "Generating proof..." : !canVote ? "Must register first" : "Generate proof"}
           </button>
           <button
             className="btn btn-ghost"

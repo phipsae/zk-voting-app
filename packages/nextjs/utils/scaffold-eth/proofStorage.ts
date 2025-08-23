@@ -13,13 +13,19 @@ export interface SerializableProofData {
 const PROOF_STORAGE_KEY_PREFIX = "zk-voting-proof-data";
 
 /**
- * Generate contract-specific storage key
+ * Generate contract and user-specific storage key
  */
-const getStorageKey = (contractAddress?: string): string => {
-  if (!contractAddress) {
+const getStorageKey = (contractAddress?: string, userAddress?: string): string => {
+  if (!contractAddress && !userAddress) {
     return `${PROOF_STORAGE_KEY_PREFIX}-default`;
   }
-  return `${PROOF_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}`;
+  if (!contractAddress) {
+    return `${PROOF_STORAGE_KEY_PREFIX}-${userAddress?.toLowerCase() || "default"}`;
+  }
+  if (!userAddress) {
+    return `${PROOF_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}`;
+  }
+  return `${PROOF_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}-${userAddress.toLowerCase()}`;
 };
 
 /**
@@ -58,12 +64,13 @@ export const saveProofToLocalStorage = (
   proofData: { proof: Uint8Array; publicInputs: any[] },
   contractAddress?: string,
   voteChoice?: boolean,
+  userAddress?: string,
 ): void => {
   try {
     const serialized = serializeProofData(proofData, contractAddress, voteChoice);
-    const storageKey = getStorageKey(contractAddress);
+    const storageKey = getStorageKey(contractAddress, userAddress);
     localStorage.setItem(storageKey, JSON.stringify(serialized));
-    console.log(`Proof data saved to localStorage for contract: ${contractAddress}`);
+    console.log(`Proof data saved to localStorage for contract: ${contractAddress}, user: ${userAddress}`);
   } catch (error) {
     console.error("Failed to save proof data to localStorage:", error);
   }
@@ -74,9 +81,10 @@ export const saveProofToLocalStorage = (
  */
 export const loadProofFromLocalStorage = (
   contractAddress?: string,
+  userAddress?: string,
 ): { proof: Uint8Array; publicInputs: any[] } | null => {
   try {
-    const storageKey = getStorageKey(contractAddress);
+    const storageKey = getStorageKey(contractAddress, userAddress);
     const stored = localStorage.getItem(storageKey);
     if (!stored) return null;
 
@@ -91,9 +99,12 @@ export const loadProofFromLocalStorage = (
 /**
  * Get full serialized proof data with metadata from localStorage
  */
-export const getStoredProofMetadata = (contractAddress?: string): SerializableProofData | null => {
+export const getStoredProofMetadata = (
+  contractAddress?: string,
+  userAddress?: string,
+): SerializableProofData | null => {
   try {
-    const storageKey = getStorageKey(contractAddress);
+    const storageKey = getStorageKey(contractAddress, userAddress);
     const stored = localStorage.getItem(storageKey);
     if (!stored) return null;
     return JSON.parse(stored);
@@ -106,11 +117,11 @@ export const getStoredProofMetadata = (contractAddress?: string): SerializablePr
 /**
  * Clear proof data from localStorage
  */
-export const clearProofFromLocalStorage = (contractAddress?: string): void => {
+export const clearProofFromLocalStorage = (contractAddress?: string, userAddress?: string): void => {
   try {
-    const storageKey = getStorageKey(contractAddress);
+    const storageKey = getStorageKey(contractAddress, userAddress);
     localStorage.removeItem(storageKey);
-    console.log(`Proof data cleared from localStorage for contract: ${contractAddress}`);
+    console.log(`Proof data cleared from localStorage for contract: ${contractAddress}, user: ${userAddress}`);
   } catch (error) {
     console.error("Failed to clear proof data from localStorage:", error);
   }
@@ -119,9 +130,9 @@ export const clearProofFromLocalStorage = (contractAddress?: string): void => {
 /**
  * Check if proof data exists in localStorage
  */
-export const hasStoredProof = (contractAddress?: string): boolean => {
+export const hasStoredProof = (contractAddress?: string, userAddress?: string): boolean => {
   try {
-    const storageKey = getStorageKey(contractAddress);
+    const storageKey = getStorageKey(contractAddress, userAddress);
     return localStorage.getItem(storageKey) !== null;
   } catch {
     return false;

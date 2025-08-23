@@ -5,6 +5,7 @@ import { UltraHonkBackend } from "@aztec/bb.js";
 import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
 import { poseidon1, poseidon2 } from "poseidon-lite";
+import { useAccount } from "wagmi";
 import { useCopyToClipboard, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
@@ -19,6 +20,7 @@ export const CombinedVote = ({
   const { commitmentData, voteChoice, setProofData, proofData } = useGlobalState();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
+  const { address: userAddress, isConnected } = useAccount();
 
   const { data: treeData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -32,12 +34,31 @@ export const CombinedVote = ({
     address: contractAddress,
   });
 
+  const { data: isVoter } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "isVoter",
+    args: [userAddress],
+    address: contractAddress,
+  });
+
+  const { data: hasRegistered } = useScaffoldReadContract({
+    contractName: "Voting",
+    functionName: "hasRegistered",
+    args: [userAddress],
+    address: contractAddress,
+  });
+
   const depth = useMemo(() => Number((treeData as readonly [bigint, bigint] | undefined)?.[1] ?? 0), [treeData]);
 
   const { writeContractAsync } = useScaffoldWriteContract({
     contractName: "Voting",
     address: contractAddress,
   });
+
+  // Determine if user can vote
+  const canVote = Boolean(isConnected && isVoter === true && hasRegistered === true);
+  const isEligibleVoter = Boolean(isVoter === true);
+  const isRegistered = Boolean(hasRegistered === true);
 
   const handleCopyProofJSON = async () => {
     if (!proofData) return;
@@ -111,9 +132,32 @@ export const CombinedVote = ({
         <h2 className="text-2xl font-bold">Cast your vote</h2>
         <p className="text-sm opacity-70">We will generate the ZK proof and submit your vote in one step.</p>
       </div>
+
+      {/* Registration Status Message */}
+      {!canVote && (
+        <div className="alert alert-warning">
+          <div className="flex flex-col">
+            <span className="font-semibold">Cannot vote yet</span>
+            <span className="text-sm">
+              {!isConnected
+                ? "Please connect your wallet"
+                : !isEligibleVoter
+                  ? "You are not on the voters list for this proposal"
+                  : !isRegistered
+                    ? "Please register first by generating and inserting your commitment"
+                    : "Unknown issue"}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-center">
-        <button className="btn btn-primary btn-lg" onClick={handleVote} disabled={isSubmitting}>
-          {isSubmitting ? "Submitting..." : "Vote now"}
+        <button
+          className={`btn btn-lg ${canVote ? "btn-primary" : "btn-disabled"}`}
+          onClick={canVote ? handleVote : undefined}
+          disabled={isSubmitting || !canVote}
+        >
+          {isSubmitting ? "Submitting..." : !canVote ? "Must register first" : "Vote now"}
         </button>
       </div>
 
