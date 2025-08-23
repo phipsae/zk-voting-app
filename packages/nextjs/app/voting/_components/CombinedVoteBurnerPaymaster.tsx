@@ -71,9 +71,11 @@ export const CombinedVoteBurnerPaymaster = ({
   // Determine if user can vote
   const canVote = Boolean(isConnected && isVoter === true && hasRegistered === true);
 
-  // Check for stored proof data on mount
+  // Check for stored proof data on mount and when user/contract changes
   useEffect(() => {
     setHasStoredProofData(hasStoredProof(contractAddress, userAddress));
+    // Reset submission state when address changes
+    setIsSubmitting(false);
   }, [contractAddress, userAddress]);
 
   // Load commitment data from localStorage on mount or when contract/user changes
@@ -90,6 +92,12 @@ export const CombinedVoteBurnerPaymaster = ({
       }
     }
   }, [contractAddress, userAddress, commitmentData, setCommitmentData]);
+
+  // Clear voting state when user address changes
+  useEffect(() => {
+    // Reset vote choice when switching addresses
+    setVoteChoice(null);
+  }, [userAddress, setVoteChoice]);
 
   // Pimlico + ERC-4337 setup (mirrors VoteWithBurnerPaymaster)
   const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
@@ -125,28 +133,6 @@ export const CombinedVoteBurnerPaymaster = ({
 
     return { smartAccountClient, accountAddress: account.address as `0x${string}` };
   };
-
-  // const handleCopyProofJSON = async () => {
-  //   if (!proofData) return;
-
-  //   try {
-  //     // Convert Uint8Array to regular array for JSON serialization
-  //     const proofArray = Array.from(proofData.proof);
-  //     const proofJson = {
-  //       proof: proofArray,
-  //       publicInputs: proofData.publicInputs,
-  //       proofHex: uint8ArrayToHexString(proofData.proof),
-  //       publicInputsHex: normalizePublicInputsToHex32(proofData.publicInputs),
-  //     };
-
-  //     const jsonStr = JSON.stringify(proofJson, null, 2);
-  //     await copyToClipboard(jsonStr);
-  //     notification.success("Proof data copied to clipboard");
-  //   } catch (error) {
-  //     console.error("Failed to copy proof:", error);
-  //     notification.error("Failed to copy proof data");
-  //   }
-  // };
 
   const handleGenerateAndVote = async () => {
     try {
@@ -289,45 +275,6 @@ export const CombinedVoteBurnerPaymaster = ({
                 : "Vote"}
         </button>
       </div>
-
-      {/* {proofData && (
-        <>
-          <div className="divider"></div>
-          <div className="space-y-4">
-            <div className="alert alert-info">
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold">Successfully voted!</h3>
-                    {!isProofAlertCollapsed && (
-                      <p className="text-sm opacity-80">
-                        Your ZK proof has been generated and submitted to the blockchain. You can copy the proof data
-                        above for your records.
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => setIsProofAlertCollapsed(!isProofAlertCollapsed)}
-                  >
-                    {isProofAlertCollapsed ? "▼" : "▲"}
-                  </button>
-                </div>
-                {!isProofAlertCollapsed && (
-                  <div className="flex gap-2">
-                    <button
-                      className={`btn btn-secondary btn-sm ${isCopiedToClipboard ? "btn-success" : ""}`}
-                      onClick={handleCopyProofJSON}
-                    >
-                      {isCopiedToClipboard ? "✓ Copied!" : "Copy JSON"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )} */}
     </div>
   );
 };
