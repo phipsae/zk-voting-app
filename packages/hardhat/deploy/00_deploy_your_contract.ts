@@ -36,6 +36,8 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   //   autoMine: true,
   // });
 
+  // const poseidon3Address = "0x4Ad9949CCfCB803De50A5323D3ABE0C04d1a9Ebb";
+
   // const leanIMT = await deploy("LeanIMT", {
   //   from: deployer,
   //   log: true,
@@ -48,9 +50,9 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
 
   // console.log("leanIMT deployed to:", leanIMT.address);
 
-  const leanIMTAddress = "0xcF4ac52079F69C93904e2A4a379cAd1F0C8dA0A9";
-  // const honkVerifierAddress = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
-  const verifier = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
+  const leanIMTAddress = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
+
+  const verifier = "0x02ac90ff7a4Cd9cE928e87eCe611F9F2bE7D938C";
 
   // await deploy("VotingFactory", {
   //   from: deployer,
@@ -61,8 +63,6 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   //     LeanIMT: leanIMTAddress,
   //   },
   // });
-
-  // const leanIMT = "0x0000000000000000000000000000000000000000";
 
   await deploy("Voting", {
     from: deployer,
