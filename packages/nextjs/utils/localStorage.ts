@@ -25,21 +25,30 @@ export interface SerializableCommitmentData extends CommitmentData {
 }
 
 const PROOF_STORAGE_KEY_PREFIX = "zk-voting-proof-data";
+const COMMITMENT_STORAGE_KEY_PREFIX = "zk-voting-commitment-data";
 
 /**
- * Generate contract and user-specific storage key
+ * Internal helpers to reduce duplication
  */
-const getStorageKey = (contractAddress?: string, userAddress?: string): string => {
-  if (!contractAddress && !userAddress) {
-    return `${PROOF_STORAGE_KEY_PREFIX}-default`;
-  }
-  if (!contractAddress) {
-    return `${PROOF_STORAGE_KEY_PREFIX}-${userAddress?.toLowerCase() || "default"}`;
-  }
-  if (!userAddress) {
-    return `${PROOF_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}`;
-  }
-  return `${PROOF_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}-${userAddress.toLowerCase()}`;
+const buildStorageKey = (prefix: string, contractAddress?: string, userAddress?: string): string => {
+  const c = contractAddress?.toLowerCase();
+  const u = userAddress?.toLowerCase();
+  if (!c && !u) return `${prefix}-default`;
+  if (!c) return `${prefix}-${u || "default"}`;
+  if (!u) return `${prefix}-${c}`;
+  return `${prefix}-${c}-${u}`;
+};
+
+const getStorageKey = (contractAddress?: string, userAddress?: string): string =>
+  buildStorageKey(PROOF_STORAGE_KEY_PREFIX, contractAddress, userAddress);
+
+const getCommitmentStorageKey = (contractAddress?: string, userAddress?: string): string =>
+  buildStorageKey(COMMITMENT_STORAGE_KEY_PREFIX, contractAddress, userAddress);
+
+const setJSON = (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value));
+const getJSON = <T>(key: string): T | null => {
+  const stored = localStorage.getItem(key);
+  return stored ? (JSON.parse(stored) as T) : null;
 };
 
 /**
@@ -83,8 +92,7 @@ export const saveProofToLocalStorage = (
   try {
     const serialized = serializeProofData(proofData, contractAddress, voteChoice);
     const storageKey = getStorageKey(contractAddress, userAddress);
-    localStorage.setItem(storageKey, JSON.stringify(serialized));
-    console.log(`Proof data saved to localStorage for contract: ${contractAddress}, user: ${userAddress}`);
+    setJSON(storageKey, serialized);
   } catch (error) {
     console.error("Failed to save proof data to localStorage:", error);
   }
@@ -99,10 +107,8 @@ export const loadProofFromLocalStorage = (
 ): { proof: Uint8Array; publicInputs: any[] } | null => {
   try {
     const storageKey = getStorageKey(contractAddress, userAddress);
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return null;
-
-    const serialized: SerializableProofData = JSON.parse(stored);
+    const serialized = getJSON<SerializableProofData>(storageKey);
+    if (!serialized) return null;
     return deserializeProofData(serialized);
   } catch (error) {
     console.error("Failed to load proof data from localStorage:", error);
@@ -119,9 +125,7 @@ export const getStoredProofMetadata = (
 ): SerializableProofData | null => {
   try {
     const storageKey = getStorageKey(contractAddress, userAddress);
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return null;
-    return JSON.parse(stored);
+    return getJSON<SerializableProofData>(storageKey);
   } catch (error) {
     console.error("Failed to get stored proof metadata:", error);
     return null;
@@ -135,7 +139,6 @@ export const clearProofFromLocalStorage = (contractAddress?: string, userAddress
   try {
     const storageKey = getStorageKey(contractAddress, userAddress);
     localStorage.removeItem(storageKey);
-    console.log(`Proof data cleared from localStorage for contract: ${contractAddress}, user: ${userAddress}`);
   } catch (error) {
     console.error("Failed to clear proof data from localStorage:", error);
   }
@@ -151,25 +154,6 @@ export const hasStoredProof = (contractAddress?: string, userAddress?: string): 
   } catch {
     return false;
   }
-};
-
-// Commitment storage functions
-const COMMITMENT_STORAGE_KEY_PREFIX = "zk-voting-commitment-data";
-
-/**
- * Generate contract and user-specific storage key for commitments
- */
-const getCommitmentStorageKey = (contractAddress?: string, userAddress?: string): string => {
-  if (!contractAddress && !userAddress) {
-    return `${COMMITMENT_STORAGE_KEY_PREFIX}-default`;
-  }
-  if (!contractAddress) {
-    return `${COMMITMENT_STORAGE_KEY_PREFIX}-${userAddress?.toLowerCase() || "default"}`;
-  }
-  if (!userAddress) {
-    return `${COMMITMENT_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}`;
-  }
-  return `${COMMITMENT_STORAGE_KEY_PREFIX}-${contractAddress.toLowerCase()}-${userAddress.toLowerCase()}`;
 };
 
 /**
@@ -188,8 +172,7 @@ export const saveCommitmentToLocalStorage = (
       userAddress,
     };
     const storageKey = getCommitmentStorageKey(contractAddress, userAddress);
-    localStorage.setItem(storageKey, JSON.stringify(serialized));
-    console.log(`Commitment data saved to localStorage for contract: ${contractAddress}, user: ${userAddress}`);
+    setJSON(storageKey, serialized);
   } catch (error) {
     console.error("Failed to save commitment data to localStorage:", error);
   }
@@ -204,14 +187,11 @@ export const loadCommitmentFromLocalStorage = (
 ): CommitmentData | null => {
   try {
     const storageKey = getCommitmentStorageKey(contractAddress, userAddress);
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return null;
-
-    const serialized: SerializableCommitmentData = JSON.parse(stored);
+    const serialized = getJSON<SerializableCommitmentData>(storageKey);
+    if (!serialized) return null;
     // Return only the commitment data without metadata
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { timestamp, contractAddress: _, userAddress: __, ...commitmentData } = serialized;
-    return commitmentData;
+    const { commitment, nullifier, secret, encoded, index } = serialized;
+    return { commitment, nullifier, secret, encoded, index };
   } catch (error) {
     console.error("Failed to load commitment data from localStorage:", error);
     return null;
@@ -227,9 +207,7 @@ export const getStoredCommitmentMetadata = (
 ): SerializableCommitmentData | null => {
   try {
     const storageKey = getCommitmentStorageKey(contractAddress, userAddress);
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return null;
-    return JSON.parse(stored);
+    return getJSON<SerializableCommitmentData>(storageKey);
   } catch (error) {
     console.error("Failed to get stored commitment metadata:", error);
     return null;
@@ -243,7 +221,6 @@ export const clearCommitmentFromLocalStorage = (contractAddress?: string, userAd
   try {
     const storageKey = getCommitmentStorageKey(contractAddress, userAddress);
     localStorage.removeItem(storageKey);
-    console.log(`Commitment data cleared from localStorage for contract: ${contractAddress}, user: ${userAddress}`);
   } catch (error) {
     console.error("Failed to clear commitment data from localStorage:", error);
   }

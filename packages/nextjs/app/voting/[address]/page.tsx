@@ -7,6 +7,7 @@ import { gql, request } from "graphql-request";
 import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
 import { CombinedVoteBurnerPaymaster } from "~~/app/voting/_components/CombinedVoteBurnerPaymaster";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
+import { LogLocalStorage } from "~~/app/voting/_components/LogLocalStorage";
 import { ShowVotersModal } from "~~/app/voting/_components/ShowVotersModal";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
 
@@ -80,19 +81,15 @@ export default function VotingByAddressPage() {
             <div className="w-full max-w-2xl space-y-4 mt-6">
               <div className="flex flex-wrap gap-2 justify-between">
                 {address && <AddVotersModal contractAddress={address} />}
-                {address && <ShowVotersModal contractAddress={address} />}
+                <div className="flex items-center gap-2">
+                  {address && <ShowVotersModal contractAddress={address} />}
+                  {address && <LogLocalStorage contractAddress={address} />}
+                </div>
               </div>
               <VotingStats contractAddress={address} />
               <CreateCommitment compact leafEvents={leavesEvents} contractAddress={address} />
               <CombinedVoteBurnerPaymaster contractAddress={address} leafEvents={leavesEvents} />
             </div>
-            {address && (
-              <div className="text-center text-sm opacity-70 mt-4">
-                <a className="underline" href={`/voting/${address}/debug`}>
-                  Advanced / Debug page
-                </a>
-              </div>
-            )}
           </div>
         )}
       </div>
