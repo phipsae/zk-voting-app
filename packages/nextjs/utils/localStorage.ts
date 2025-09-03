@@ -1,7 +1,6 @@
 /**
  * Utility functions for storing and retrieving proof data and commitment data from localStorage
  */
-
 export interface SerializableProofData {
   proof: number[]; // Uint8Array serialized as number array
   publicInputs: any[];
@@ -26,6 +25,12 @@ export interface SerializableCommitmentData extends CommitmentData {
 
 const PROOF_STORAGE_KEY_PREFIX = "zk-voting-proof-data";
 const COMMITMENT_STORAGE_KEY_PREFIX = "zk-voting-commitment-data";
+const NESTED_STORAGE_KEY = "zk-voting-index"; // contractAddress -> userAddress -> { commitment, proof }
+
+export interface NestedUserData {
+  commitment?: SerializableCommitmentData;
+  proof?: SerializableProofData;
+}
 
 /**
  * Internal helpers to reduce duplication
@@ -49,6 +54,55 @@ const setJSON = (key: string, value: unknown) => localStorage.setItem(key, JSON.
 const getJSON = <T>(key: string): T | null => {
   const stored = localStorage.getItem(key);
   return stored ? (JSON.parse(stored) as T) : null;
+};
+
+/**
+ * Nested index helpers: contractAddress -> userAddress -> { commitment, proof }
+ */
+const normalizeAddress = (address?: string) => address?.toLowerCase();
+
+type NestedIndex = Record<string, Record<string, NestedUserData>>;
+
+const getNestedIndex = (): NestedIndex => {
+  try {
+    return getJSON<NestedIndex>(NESTED_STORAGE_KEY) ?? {};
+  } catch {
+    return {};
+  }
+};
+
+const setNestedIndex = (index: NestedIndex) => {
+  try {
+    setJSON(NESTED_STORAGE_KEY, index);
+  } catch (error) {
+    console.error("Failed to update nested index in localStorage:", error);
+  }
+};
+
+const upsertNestedUserData = (contractAddress?: string, userAddress?: string, data?: Partial<NestedUserData>) => {
+  const c = normalizeAddress(contractAddress);
+  const u = normalizeAddress(userAddress);
+  if (!c || !u || !data) return;
+  const index = getNestedIndex();
+  index[c] = index[c] || {};
+  index[c][u] = { ...(index[c][u] || {}), ...data };
+  setNestedIndex(index);
+};
+
+const removeNestedField = (contractAddress?: string, userAddress?: string, field?: "commitment" | "proof") => {
+  const c = normalizeAddress(contractAddress);
+  const u = normalizeAddress(userAddress);
+  if (!c || !u || !field) return;
+  const index = getNestedIndex();
+  if (!index[c] || !index[c][u]) return;
+  delete (index[c][u] as any)[field];
+  if (!index[c][u].commitment && !index[c][u].proof) {
+    delete index[c][u];
+  }
+  if (index[c] && Object.keys(index[c]).length === 0) {
+    delete index[c];
+  }
+  setNestedIndex(index);
 };
 
 /**
@@ -93,6 +147,8 @@ export const saveProofToLocalStorage = (
     const serialized = serializeProofData(proofData, contractAddress, voteChoice);
     const storageKey = getStorageKey(contractAddress, userAddress);
     setJSON(storageKey, serialized);
+    // Also update nested index under contract -> user -> proof
+    upsertNestedUserData(contractAddress, userAddress, { proof: serialized });
   } catch (error) {
     console.error("Failed to save proof data to localStorage:", error);
   }
@@ -139,6 +195,7 @@ export const clearProofFromLocalStorage = (contractAddress?: string, userAddress
   try {
     const storageKey = getStorageKey(contractAddress, userAddress);
     localStorage.removeItem(storageKey);
+    removeNestedField(contractAddress, userAddress, "proof");
   } catch (error) {
     console.error("Failed to clear proof data from localStorage:", error);
   }
@@ -173,6 +230,8 @@ export const saveCommitmentToLocalStorage = (
     };
     const storageKey = getCommitmentStorageKey(contractAddress, userAddress);
     setJSON(storageKey, serialized);
+    // Also update nested index under contract -> user -> commitment
+    upsertNestedUserData(contractAddress, userAddress, { commitment: serialized });
   } catch (error) {
     console.error("Failed to save commitment data to localStorage:", error);
   }
@@ -221,6 +280,7 @@ export const clearCommitmentFromLocalStorage = (contractAddress?: string, userAd
   try {
     const storageKey = getCommitmentStorageKey(contractAddress, userAddress);
     localStorage.removeItem(storageKey);
+    removeNestedField(contractAddress, userAddress, "commitment");
   } catch (error) {
     console.error("Failed to clear commitment data from localStorage:", error);
   }
