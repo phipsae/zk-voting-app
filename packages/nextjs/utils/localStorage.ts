@@ -25,11 +25,26 @@ export interface SerializableCommitmentData extends CommitmentData {
 
 const PROOF_STORAGE_KEY_PREFIX = "zk-voting-proof-data";
 const COMMITMENT_STORAGE_KEY_PREFIX = "zk-voting-commitment-data";
+const VOTE_STORAGE_KEY_PREFIX = "zk-voting-vote-data";
 const NESTED_STORAGE_KEY = "zk-voting-index"; // contractAddress -> userAddress -> { commitment, proof }
 
 export interface NestedUserData {
   commitment?: SerializableCommitmentData;
   proof?: SerializableProofData;
+  vote?: VoteRecord;
+}
+
+export interface VoteRecord {
+  voteChoice: boolean;
+  txHash: string;
+  timestamp: number;
+  contractAddress?: string;
+  userAddress?: string;
+  smartAccountAddress?: string;
+  burnerAddress?: string;
+  status?: "pending" | "success" | "failed";
+  blockNumber?: string;
+  error?: string;
 }
 
 /**
@@ -49,6 +64,9 @@ const getStorageKey = (contractAddress?: string, userAddress?: string): string =
 
 const getCommitmentStorageKey = (contractAddress?: string, userAddress?: string): string =>
   buildStorageKey(COMMITMENT_STORAGE_KEY_PREFIX, contractAddress, userAddress);
+
+const getVoteStorageKey = (contractAddress?: string, userAddress?: string): string =>
+  buildStorageKey(VOTE_STORAGE_KEY_PREFIX, contractAddress, userAddress);
 
 const setJSON = (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value));
 const getJSON = <T>(key: string): T | null => {
@@ -89,14 +107,14 @@ const upsertNestedUserData = (contractAddress?: string, userAddress?: string, da
   setNestedIndex(index);
 };
 
-const removeNestedField = (contractAddress?: string, userAddress?: string, field?: "commitment" | "proof") => {
+const removeNestedField = (contractAddress?: string, userAddress?: string, field?: "commitment" | "proof" | "vote") => {
   const c = normalizeAddress(contractAddress);
   const u = normalizeAddress(userAddress);
   if (!c || !u || !field) return;
   const index = getNestedIndex();
   if (!index[c] || !index[c][u]) return;
   delete (index[c][u] as any)[field];
-  if (!index[c][u].commitment && !index[c][u].proof) {
+  if (!index[c][u].commitment && !index[c][u].proof && !index[c][u].vote) {
     delete index[c][u];
   }
   if (index[c] && Object.keys(index[c]).length === 0) {
@@ -207,6 +225,82 @@ export const clearProofFromLocalStorage = (contractAddress?: string, userAddress
 export const hasStoredProof = (contractAddress?: string, userAddress?: string): boolean => {
   try {
     const storageKey = getStorageKey(contractAddress, userAddress);
+    return localStorage.getItem(storageKey) !== null;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Save vote record to localStorage
+ */
+export const saveVoteToLocalStorage = (
+  voteChoice: boolean,
+  txHash: string,
+  contractAddress?: string,
+  userAddress?: string,
+  smartAccountAddress?: string,
+  burnerAddress?: string,
+  status?: "pending" | "success" | "failed",
+): void => {
+  try {
+    const record: VoteRecord = {
+      voteChoice,
+      txHash,
+      timestamp: Date.now(),
+      contractAddress,
+      userAddress,
+      smartAccountAddress,
+      burnerAddress,
+      status,
+    };
+    const storageKey = getVoteStorageKey(contractAddress, userAddress);
+    setJSON(storageKey, record);
+    upsertNestedUserData(contractAddress, userAddress, { vote: record });
+  } catch (error) {
+    console.error("Failed to save vote record to localStorage:", error);
+  }
+};
+
+export const updateVoteInLocalStorage = (
+  contractAddress?: string,
+  userAddress?: string,
+  updates?: Partial<VoteRecord>,
+): void => {
+  try {
+    const storageKey = getVoteStorageKey(contractAddress, userAddress);
+    const current = getJSON<VoteRecord>(storageKey) || ({} as VoteRecord);
+    const merged: VoteRecord = { ...current, ...updates } as VoteRecord;
+    setJSON(storageKey, merged);
+    upsertNestedUserData(contractAddress, userAddress, { vote: merged });
+  } catch (error) {
+    console.error("Failed to update vote record in localStorage:", error);
+  }
+};
+
+export const getStoredVoteMetadata = (contractAddress?: string, userAddress?: string): VoteRecord | null => {
+  try {
+    const storageKey = getVoteStorageKey(contractAddress, userAddress);
+    return getJSON<VoteRecord>(storageKey);
+  } catch (error) {
+    console.error("Failed to get stored vote metadata:", error);
+    return null;
+  }
+};
+
+export const clearVoteFromLocalStorage = (contractAddress?: string, userAddress?: string): void => {
+  try {
+    const storageKey = getVoteStorageKey(contractAddress, userAddress);
+    localStorage.removeItem(storageKey);
+    removeNestedField(contractAddress, userAddress, "vote");
+  } catch (error) {
+    console.error("Failed to clear vote from localStorage:", error);
+  }
+};
+
+export const hasStoredVote = (contractAddress?: string, userAddress?: string): boolean => {
+  try {
+    const storageKey = getVoteStorageKey(contractAddress, userAddress);
     return localStorage.getItem(storageKey) !== null;
   } catch {
     return false;

@@ -7,6 +7,7 @@ import {
   clearProofFromLocalStorage,
   getStoredCommitmentMetadata,
   getStoredProofMetadata,
+  getStoredVoteMetadata,
 } from "~~/utils/scaffold-eth";
 
 interface LogLocalStorageProps {
@@ -20,11 +21,12 @@ export const LogLocalStorage = ({ contractAddress }: LogLocalStorageProps) => {
     try {
       const commitment = getStoredCommitmentMetadata(contractAddress, userAddress);
       const proof = getStoredProofMetadata(contractAddress, userAddress);
+      const vote = getStoredVoteMetadata(contractAddress, userAddress);
       // Grouped console output for readability
 
       console.groupCollapsed(`LocalStorage for ${contractAddress ?? "<no-contract>"} / ${userAddress ?? "<no-user>"}`);
 
-      console.log({ commitment, proof });
+      console.log({ commitment, proof, vote });
 
       console.groupEnd();
     } catch (error) {

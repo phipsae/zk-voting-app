@@ -21,6 +21,8 @@ import {
   loadCommitmentFromLocalStorage,
   notification,
   saveProofToLocalStorage,
+  saveVoteToLocalStorage,
+  updateVoteInLocalStorage,
 } from "~~/utils/scaffold-eth";
 
 const chains = {
@@ -142,14 +144,14 @@ export const CombinedVoteBurnerPaymaster = ({
 
     const publicClient = createPublicClient({ chain: CHAIN_USED, transport: http(HTTP_CLIENT_USED) });
 
-    const account = await toSafeSmartAccount({
+    const smartAccount = await toSafeSmartAccount({
       client: publicClient,
       owners: [wallet],
       version: "1.4.1",
     });
 
     const smartAccountClient = createSmartAccountClient({
-      account,
+      account: smartAccount,
       chain: CHAIN_USED,
       bundlerTransport: http(pimlicoUrl),
       paymaster: pimlicoClient,
@@ -158,7 +160,11 @@ export const CombinedVoteBurnerPaymaster = ({
       },
     });
 
-    return { smartAccountClient, accountAddress: account.address as `0x${string}` };
+    return {
+      smartAccountClient,
+      accountAddress: smartAccount.address as `0x${string}`,
+      burnerAddress: wallet.address as `0x${string}`,
+    };
   };
 
   const handleGenerateAndVote = async () => {
@@ -219,20 +225,68 @@ export const CombinedVoteBurnerPaymaster = ({
         args: [proofHex, inputsHex[0], inputsHex[1], inputsHex[2], inputsHex[3]],
       });
 
-      const { smartAccountClient } = await createSmartAccount();
+      const { smartAccountClient, accountAddress, burnerAddress } = await createSmartAccount();
 
       const userOpHash = await smartAccountClient.sendTransaction({
-        to: (contractAddress || contractInfo?.address) as `0x${string}`,
+        to: contractAddress as `0x${string}`,
         data: callData,
         value: 0n,
       });
 
+      // Record vote as pending using the userOp hash
+      saveVoteToLocalStorage(
+        voteChoice,
+        userOpHash,
+        contractAddress,
+        userAddress,
+        accountAddress,
+        burnerAddress,
+        "pending",
+      );
+
       const receipt = await pimlicoClient.waitForUserOperationReceipt({ hash: userOpHash });
       console.log("Transaction included:", receipt);
+      const rawTxHash =
+        (receipt as any)?.receipt?.transactionHash ||
+        (receipt as any)?.transactionHash ||
+        (receipt as any)?.hash ||
+        userOpHash;
+      const txHash = typeof rawTxHash === "string" ? rawTxHash : rawTxHash?.toString?.();
+      if (txHash) {
+        updateVoteInLocalStorage(contractAddress, userAddress, {
+          txHash,
+          status: "success",
+          blockNumber: (receipt as any)?.receipt?.blockNumber?.toString?.(),
+        });
+      }
       notification.success("Vote submitted successfully (gasless)");
     } catch (err) {
       console.error(err);
-      notification.error((err as Error).message || "Failed to submit vote");
+      const name = (err as any)?.name || "";
+      const message = (err as Error)?.message || "";
+      const isTimeout =
+        name.includes("WaitForUserOperationReceiptTimeoutError") ||
+        message.includes("WaitForUserOperationReceiptTimeoutError") ||
+        message.includes("Timed out while waiting for User Operation");
+
+      if (isTimeout) {
+        try {
+          updateVoteInLocalStorage(contractAddress, userAddress, {
+            status: "success",
+            error: undefined,
+          });
+        } catch {}
+        // Optionally notify success on timeout
+        // notification.success("Vote submitted (confirmation timed out, will appear shortly)");
+      } else {
+        notification.error(message || "Failed to submit vote");
+        try {
+          updateVoteInLocalStorage(contractAddress, userAddress, {
+            status: "failed",
+            error: message || name,
+          });
+        } catch {}
+      }
     } finally {
       setIsSubmitting(false);
     }
