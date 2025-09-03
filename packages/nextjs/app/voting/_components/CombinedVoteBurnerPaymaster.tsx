@@ -65,6 +65,12 @@ export const CombinedVoteBurnerPaymaster = ({
   // const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
   const { address: userAddress, isConnected } = useAccount();
 
+  // uint256 treeSize,
+  //           uint256 treeDepth,
+  //           uint256 treeRoot,
+  //           bool isVoterStatus,
+  //           bool hasRegisteredStatus,
+  //           uint256 registrationDeadline
   const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
     functionName: "getVotingData",

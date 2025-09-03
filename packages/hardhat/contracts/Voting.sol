@@ -151,22 +151,25 @@ contract Voting is Ownable {
             uint256 treeRoot,
             bool isVoterStatus,
             bool hasRegisteredStatus,
-            uint256 totalYesVotes,
-            uint256 totalNoVotes,
-            string memory question,
             uint256 registrationDeadline
         )
     {
         return (
-            s_tree.size,
-            s_tree.depth,
-            s_tree.root(),
-            s_voters[_voter],
-            s_hasRegistered[_voter],
-            s_yesVotes,
-            s_noVotes,
-            s_question,
-            i_registrationDeadline
+            s_tree.size, s_tree.depth, s_tree.root(), s_voters[_voter], s_hasRegistered[_voter], i_registrationDeadline
         );
+    }
+
+    function getVotingStats()
+        public
+        view
+        returns (
+            address contractOwner,
+            string memory question,
+            uint256 totalYesVotes,
+            uint256 totalNoVotes,
+            uint256 registrationDeadline
+        )
+    {
+        return (owner(), s_question, s_yesVotes, s_noVotes, i_registrationDeadline);
     }
 }

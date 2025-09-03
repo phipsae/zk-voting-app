@@ -2,24 +2,24 @@ import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string}` }) => {
-  const { data: votingData } = useScaffoldReadContract({
+  const { data: votingStats } = useScaffoldReadContract({
     contractName: "Voting",
-    functionName: "getVotingData",
-    args: [contractAddress],
+    functionName: "getVotingStats",
     address: contractAddress,
   });
 
-  const votingDataArray = votingData as unknown as any[];
+  // address owner,
+  // string memory question,
+  // uint256 totalYesVotes,
+  // uint256 totalNoVotes,
+  // uint256 registrationDeadline
+  const votingStatsArray = votingStats as unknown as any[];
 
-  const question = votingDataArray?.[7] as string;
-  const totalYesVotes = votingDataArray?.[5] as bigint;
-  const totalNoVotes = votingDataArray?.[6] as bigint;
-
-  const { data: owner } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "owner",
-    address: contractAddress,
-  });
+  const owner = votingStatsArray?.[0] as string;
+  const question = votingStatsArray?.[1] as string;
+  const totalYesVotes = votingStatsArray?.[2] as bigint;
+  const totalNoVotes = votingStatsArray?.[3] as bigint;
+  // const registrationDeadline = votingStatsArray?.[4] as bigint;
 
   const q = (question as string | undefined) || undefined;
   const yes = (totalYesVotes as bigint | undefined) ?? 0n;
@@ -32,6 +32,7 @@ export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string
     <div className="bg-base-100 shadow rounded-xl p-4 space-y-3">
       <div className="text-center">
         <h2 className="text-2xl font-bold">{q || "Loading..."}</h2>
+        <button onClick={() => console.log(votingStats)}>Log voting stats</button>
         <div className="flex justify-center gap-10">
           <div>
             Voting contract: <Address address={contractAddress} />

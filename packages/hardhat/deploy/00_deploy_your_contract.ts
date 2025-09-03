@@ -52,17 +52,15 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   // const honkVerifierAddress = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
   const verifier = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
 
-  // await deploy("VotingFactory", {
-  //   from: deployer,
-  //   args: [verifier],
-  //   log: true,
-  //   autoMine: true,
-  //   libraries: {
-  //     LeanIMT: leanIMTAddress,
-  //   },
-  // });
-
-  // const leanIMT = "0x0000000000000000000000000000000000000000";
+  await deploy("VotingFactory", {
+    from: deployer,
+    args: [verifier],
+    log: true,
+    autoMine: true,
+    libraries: {
+      LeanIMT: leanIMTAddress,
+    },
+  });
 
   await deploy("Voting", {
     from: deployer,

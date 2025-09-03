@@ -57,25 +57,22 @@ export const ShowVotersModal = ({ contractAddress }: ShowVotersModalProps) => {
   }, [voterData]);
 
   // Component to check individual voter status
-  const VoterStatus = ({ address }: { address: string }) => {
-    const { data: isVoter } = useScaffoldReadContract({
+  const VoterStatus = ({ userAddress }: { userAddress: string }) => {
+    const { data: votingData } = useScaffoldReadContract({
       contractName: "Voting",
-      functionName: "isVoter",
-      args: [address as `0x${string}`],
+      functionName: "getVotingData",
+      args: [userAddress],
       address: contractAddress,
     });
 
-    const { data: hasRegistered } = useScaffoldReadContract({
-      contractName: "Voting",
-      functionName: "hasRegistered",
-      args: [address as `0x${string}`],
-      address: contractAddress,
-    });
+    const votingDataArray = votingData as unknown as any[];
+    const isVoter = votingDataArray?.[3] as boolean;
+    const hasRegistered = votingDataArray?.[4] as boolean;
 
     return (
       <div className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
         <div className="flex-1">
-          <Address address={address as `0x${string}`} />
+          <Address address={userAddress as `0x${string}`} />
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
@@ -147,7 +144,7 @@ export const ShowVotersModal = ({ contractAddress }: ShowVotersModalProps) => {
                   Voter Addresses & Status
                 </div>
                 {uniqueVoters.map((voterAddress, index) => (
-                  <VoterStatus key={`${voterAddress}-${index}`} address={voterAddress} />
+                  <VoterStatus key={`${voterAddress}-${index}`} userAddress={voterAddress} />
                 ))}
               </div>
             )}

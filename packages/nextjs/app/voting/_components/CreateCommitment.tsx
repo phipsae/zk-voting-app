@@ -28,21 +28,18 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
   const [, setIsInserted] = useState(false);
   const { setCommitmentData, commitmentData } = useGlobalState();
 
-  const { address: walletAddress, isConnected } = useAccount();
+  const { address: userAddress, isConnected } = useAccount();
 
-  const { data: isVoter } = useScaffoldReadContract({
+  const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
-    functionName: "isVoter",
-    args: [walletAddress],
+    functionName: "getVotingData",
+    args: [userAddress],
     address: contractAddress,
   });
 
-  const { data: hasRegistered } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "hasRegistered",
-    args: [walletAddress],
-    address: contractAddress,
-  });
+  const votingDataArray = votingData as unknown as any[];
+  const isVoter = votingDataArray?.[3] as boolean;
+  const hasRegistered = votingDataArray?.[4] as boolean;
 
   const canRegister = Boolean(isConnected && isVoter !== false && hasRegistered !== true);
 
@@ -89,7 +86,7 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
               setIsInserted(true);
 
               // Save commitment data to localStorage after successful insertion
-              saveCommitmentToLocalStorage(updatedData, contractAddress, walletAddress);
+              saveCommitmentToLocalStorage(updatedData, contractAddress, userAddress);
             }
           },
         },

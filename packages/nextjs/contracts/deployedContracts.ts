@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   84532: {
     Voting: {
-      address: "0x16A520b0Ca2C6E752f7b9Ec4dFf5263714fc42e4",
+      address: "0x756609044c5512c11F426FC03fb3135E26b2939A",
       abi: [
         {
           inputs: [
@@ -325,6 +325,29 @@ const deployedContracts = {
             },
             {
               internalType: "uint256",
+              name: "registrationDeadline",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getVotingStats",
+          outputs: [
+            {
+              internalType: "address",
+              name: "contractOwner",
+              type: "address",
+            },
+            {
+              internalType: "string",
+              name: "question",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
               name: "totalYesVotes",
               type: "uint256",
             },
@@ -332,11 +355,6 @@ const deployedContracts = {
               internalType: "uint256",
               name: "totalNoVotes",
               type: "uint256",
-            },
-            {
-              internalType: "string",
-              name: "question",
-              type: "string",
             },
             {
               internalType: "uint256",
@@ -591,10 +609,10 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 30561325,
+      deployedOnBlock: 30562957,
     },
     VotingFactory: {
-      address: "0x60a0D32ff0B7CFD056BECC43115252718741eFe2",
+      address: "0xF47e5c8555A24671e292616d3F9Fe738e630f18B",
       abi: [
         {
           inputs: [
@@ -709,7 +727,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 30561304,
+      deployedOnBlock: 30562954,
     },
   },
 } as const;
