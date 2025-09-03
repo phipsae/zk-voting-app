@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { UltraHonkBackend } from "@aztec/bb.js";
 import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
@@ -65,33 +65,18 @@ export const CombinedVoteBurnerPaymaster = ({
   // const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
   const { address: userAddress, isConnected } = useAccount();
 
-  const { data: treeData } = useScaffoldReadContract({
+  const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
-    functionName: "tree",
-    address: contractAddress,
-  });
-
-  const { data: root } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "getRoot",
-    address: contractAddress,
-  });
-
-  const { data: isVoter } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "isVoter",
+    functionName: "getVotingData",
     args: [userAddress],
     address: contractAddress,
   });
 
-  const { data: hasRegistered } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "hasRegistered",
-    args: [userAddress],
-    address: contractAddress,
-  });
-
-  const depth = useMemo(() => Number((treeData as readonly [bigint, bigint] | undefined)?.[1] ?? 0), [treeData]);
+  const votingDataArray = votingData as unknown as any[];
+  const depth = Number(votingDataArray?.[1] ?? 0);
+  const root = votingDataArray?.[2] as bigint;
+  const isVoter = votingDataArray?.[3] as boolean;
+  const hasRegistered = votingDataArray?.[4] as boolean;
 
   const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
 

@@ -15,7 +15,7 @@ const Home: NextPage = () => {
     try {
       await writeVotingAsync({
         functionName: "createVoting",
-        args: [question],
+        args: [question, 30n],
       });
       // Clear the question after successful creation
       setQuestion("");

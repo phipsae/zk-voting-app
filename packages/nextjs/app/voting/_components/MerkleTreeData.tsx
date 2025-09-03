@@ -18,7 +18,7 @@ export const MerkleTreeData: React.FC<MerkleTreeDataProps> = ({ contractAddress,
   const { data: treeData } = useScaffoldReadContract({
     address: contractAddress,
     contractName: "Voting",
-    functionName: "tree",
+    functionName: "s_tree",
   });
 
   const { data: root } = useScaffoldReadContract({

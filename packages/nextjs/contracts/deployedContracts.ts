@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   84532: {
     Voting: {
-      address: "0x7Ec056DCc240EcE645703E391484517F0b3756e1",
+      address: "0x16A520b0Ca2C6E752f7b9Ec4dFf5263714fc42e4",
       abi: [
         {
           inputs: [
@@ -20,6 +20,11 @@ const deployedContracts = {
               internalType: "string",
               name: "_question",
               type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "_registrationDuration",
+              type: "uint256",
             },
           ],
           stateMutability: "nonpayable",
@@ -77,6 +82,21 @@ const deployedContracts = {
             },
           ],
           name: "Voting__NullifierHashAlreadyUsed",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Voting__RegistrationPeriodNotOver",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Voting__RegistrationPeriodOver",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "Voting__VotersLengthMismatch",
           type: "error",
         },
         {
@@ -276,12 +296,84 @@ const deployedContracts = {
               type: "address",
             },
           ],
+          name: "getVotingData",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "treeSize",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "treeDepth",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "treeRoot",
+              type: "uint256",
+            },
+            {
+              internalType: "bool",
+              name: "isVoterStatus",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "hasRegisteredStatus",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "totalYesVotes",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "totalNoVotes",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
+              name: "question",
+              type: "string",
+            },
+            {
+              internalType: "uint256",
+              name: "registrationDeadline",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_voter",
+              type: "address",
+            },
+          ],
           name: "hasRegistered",
           outputs: [
             {
               internalType: "bool",
               name: "",
               type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "i_registrationDeadline",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -334,38 +426,12 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "noVotes",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "owner",
           outputs: [
             {
               internalType: "address",
               name: "",
               type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "question",
-          outputs: [
-            {
-              internalType: "string",
-              name: "",
-              type: "string",
             },
           ],
           stateMutability: "view",
@@ -398,6 +464,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "s_noVotes",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "bytes32",
@@ -417,21 +496,21 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [
+          inputs: [],
+          name: "s_question",
+          outputs: [
             {
-              internalType: "address",
-              name: "newOwner",
-              type: "address",
+              internalType: "string",
+              name: "",
+              type: "string",
             },
           ],
-          name: "transferOwnership",
-          outputs: [],
-          stateMutability: "nonpayable",
+          stateMutability: "view",
           type: "function",
         },
         {
           inputs: [],
-          name: "tree",
+          name: "s_tree",
           outputs: [
             {
               internalType: "uint256",
@@ -445,6 +524,32 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "s_yesVotes",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "transferOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -480,29 +585,16 @@ const deployedContracts = {
           stateMutability: "nonpayable",
           type: "function",
         },
-        {
-          inputs: [],
-          name: "yesVotes",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
       ],
       inheritedFunctions: {
         owner: "@openzeppelin/contracts/access/Ownable.sol",
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 30560473,
+      deployedOnBlock: 30561325,
     },
     VotingFactory: {
-      address: "0x0974fB88184D9cC90cDfE467B1CFDe9929077107",
+      address: "0x60a0D32ff0B7CFD056BECC43115252718741eFe2",
       abi: [
         {
           inputs: [
@@ -566,6 +658,11 @@ const deployedContracts = {
               name: "_question",
               type: "string",
             },
+            {
+              internalType: "uint256",
+              name: "_registrationDuration",
+              type: "uint256",
+            },
           ],
           name: "createVoting",
           outputs: [
@@ -612,7 +709,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 30560454,
+      deployedOnBlock: 30561304,
     },
   },
 } as const;

@@ -2,23 +2,18 @@ import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string}` }) => {
-  const { data: question } = useScaffoldReadContract({
+  const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
-    functionName: "question",
+    functionName: "getVotingData",
+    args: [contractAddress],
     address: contractAddress,
   });
 
-  const { data: yesVotes } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "yesVotes",
-    address: contractAddress,
-  });
+  const votingDataArray = votingData as unknown as any[];
 
-  const { data: noVotes } = useScaffoldReadContract({
-    contractName: "Voting",
-    functionName: "noVotes",
-    address: contractAddress,
-  });
+  const question = votingDataArray?.[7] as string;
+  const totalYesVotes = votingDataArray?.[5] as bigint;
+  const totalNoVotes = votingDataArray?.[6] as bigint;
 
   const { data: owner } = useScaffoldReadContract({
     contractName: "Voting",
@@ -27,8 +22,8 @@ export const VotingStats = ({ contractAddress }: { contractAddress?: `0x${string
   });
 
   const q = (question as string | undefined) || undefined;
-  const yes = (yesVotes as bigint | undefined) ?? 0n;
-  const no = (noVotes as bigint | undefined) ?? 0n;
+  const yes = (totalYesVotes as bigint | undefined) ?? 0n;
+  const no = (totalNoVotes as bigint | undefined) ?? 0n;
   const totalVotes = yes + no;
   const yesPercentage = totalVotes > 0n ? Number((yes * 100n) / totalVotes) : 0;
   const noPercentage = totalVotes > 0n ? Number((no * 100n) / totalVotes) : 0;

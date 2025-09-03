@@ -12,7 +12,8 @@ contract Voting is Ownable {
     uint256 constant MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     IVerifier public immutable i_verifier;
-    string public question;
+    string public s_question;
+    uint256 public immutable i_registrationDeadline;
 
     // so that not 2 times the same commitment can be inserted
     mapping(uint256 => bool) public s_commitments;
@@ -21,9 +22,9 @@ contract Voting is Ownable {
     mapping(address => bool) private s_voters;
     mapping(address => bool) private s_hasRegistered;
 
-    LeanIMTData public tree;
-    uint256 public yesVotes;
-    uint256 public noVotes;
+    LeanIMTData public s_tree;
+    uint256 public s_yesVotes;
+    uint256 public s_noVotes;
 
     event NewLeaf(uint256 index, uint256 value);
     event VoteCast(
@@ -40,14 +41,23 @@ contract Voting is Ownable {
     error Voting__NullifierHashAlreadyUsed(bytes32 nullifierHash);
     error Voting__InvalidProof();
     error Voting__NotAllowedToVote();
+    error Voting__VotersLengthMismatch();
+    error Voting__RegistrationPeriodNotOver();
+    error Voting__RegistrationPeriodOver();
 
-    constructor(IVerifier _verifier, string memory _question) Ownable(msg.sender) {
+    constructor(IVerifier _verifier, string memory _question, uint256 _registrationDuration) Ownable(msg.sender) {
         i_verifier = _verifier;
-        question = _question;
+        s_question = _question;
+        i_registrationDeadline = _registrationDuration + block.timestamp;
     }
 
     function addVoters(address[] calldata voters, bool[] calldata statuses) public onlyOwner {
-        require(voters.length == statuses.length, "Voters and statuses length mismatch");
+        if (block.timestamp > i_registrationDeadline) {
+            revert Voting__RegistrationPeriodOver();
+        }
+        if (voters.length != statuses.length) {
+            revert Voting__VotersLengthMismatch();
+        }
 
         for (uint256 i = 0; i < voters.length; i++) {
             s_voters[voters[i]] = statuses[i];
@@ -56,6 +66,9 @@ contract Voting is Ownable {
     }
 
     function insert(uint256 _commitment) public {
+        if (block.timestamp > i_registrationDeadline) {
+            revert Voting__RegistrationPeriodOver();
+        }
         if (!s_voters[msg.sender] || s_hasRegistered[msg.sender]) {
             revert Voting__NotAllowedToVote();
         }
@@ -64,12 +77,15 @@ contract Voting is Ownable {
         }
         s_commitments[_commitment] = true;
         s_hasRegistered[msg.sender] = true;
-        tree.insert(_commitment);
-        emit NewLeaf(tree.size - 1, _commitment);
+        s_tree.insert(_commitment);
+        emit NewLeaf(s_tree.size - 1, _commitment);
     }
 
     // TODO: change to vote
     function vote(bytes memory _proof, bytes32 _root, bytes32 _nullifierHash, bytes32 _vote, bytes32 _depth) public {
+        if (block.timestamp <= i_registrationDeadline) {
+            revert Voting__RegistrationPeriodNotOver();
+        }
         if (s_nullifierHashes[_nullifierHash]) {
             revert Voting__NullifierHashAlreadyUsed(_nullifierHash);
         }
@@ -86,34 +102,36 @@ contract Voting is Ownable {
         }
 
         if (_vote == bytes32(uint256(1))) {
-            yesVotes++;
+            s_yesVotes++;
         } else {
-            noVotes++;
+            s_noVotes++;
         }
 
-        emit VoteCast(_nullifierHash, msg.sender, _vote == bytes32(uint256(1)), block.timestamp, yesVotes, noVotes);
+        emit VoteCast(_nullifierHash, msg.sender, _vote == bytes32(uint256(1)), block.timestamp, s_yesVotes, s_noVotes);
     }
 
-    // getters
+    //////////////
+    // getters ///
+    //////////////
 
     function getLeaf(uint256 index) public view returns (uint256) {
-        return tree.leaves[index];
+        return s_tree.leaves[index];
     }
 
     function getNode(uint256 index) public view returns (uint256) {
-        return tree.sideNodes[index];
+        return s_tree.sideNodes[index];
     }
 
     function getSize() public view returns (uint256) {
-        return tree.size;
+        return s_tree.size;
     }
 
     function getDepth() public view returns (uint256) {
-        return tree.depth;
+        return s_tree.depth;
     }
 
     function getRoot() public view returns (uint256) {
-        return tree.root();
+        return s_tree.root();
     }
 
     function hasRegistered(address _voter) public view returns (bool) {
@@ -122,5 +140,33 @@ contract Voting is Ownable {
 
     function isVoter(address _voter) public view returns (bool) {
         return s_voters[_voter];
+    }
+
+    function getVotingData(address _voter)
+        public
+        view
+        returns (
+            uint256 treeSize,
+            uint256 treeDepth,
+            uint256 treeRoot,
+            bool isVoterStatus,
+            bool hasRegisteredStatus,
+            uint256 totalYesVotes,
+            uint256 totalNoVotes,
+            string memory question,
+            uint256 registrationDeadline
+        )
+    {
+        return (
+            s_tree.size,
+            s_tree.depth,
+            s_tree.root(),
+            s_voters[_voter],
+            s_hasRegistered[_voter],
+            s_yesVotes,
+            s_noVotes,
+            s_question,
+            i_registrationDeadline
+        );
     }
 }
