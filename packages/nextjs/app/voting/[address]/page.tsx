@@ -83,12 +83,12 @@ export default function VotingByAddressPage() {
                 {address && <AddVotersModal contractAddress={address} />}
                 <div className="flex items-center gap-2">
                   {address && <ShowVotersModal contractAddress={address} />}
-                  {address && <LogLocalStorage contractAddress={address} />}
                 </div>
               </div>
               <VotingStats contractAddress={address} />
               <CreateCommitment compact leafEvents={leavesEvents} contractAddress={address} />
               <CombinedVoteBurnerPaymaster contractAddress={address} leafEvents={leavesEvents} />
+              {address && <LogLocalStorage contractAddress={address} />}
             </div>
           </div>
         )}
