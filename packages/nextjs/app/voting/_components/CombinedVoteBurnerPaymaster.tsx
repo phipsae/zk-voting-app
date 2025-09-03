@@ -11,7 +11,7 @@ import { poseidon1, poseidon2 } from "poseidon-lite";
 import { createPublicClient, encodeFunctionData, http } from "viem";
 import { EntryPointVersion, entryPoint07Address } from "viem/account-abstraction";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { baseSepolia } from "viem/chains";
+import { base, baseSepolia, mainnet, sepolia } from "viem/chains";
 import { useAccount } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
@@ -22,6 +22,31 @@ import {
   notification,
   saveProofToLocalStorage,
 } from "~~/utils/scaffold-eth";
+
+const chains = {
+  baseSepolia: {
+    network: baseSepolia,
+    http: "https://sepolia.base.org",
+  },
+  sepolia: {
+    network: sepolia,
+    // http: "https://sepolia.alchemyapi.io/v2/your-api-key",
+  },
+  mainnet: {
+    network: mainnet,
+    // http: "https://mainnet.alchemyapi.io/v2/your-api-key",
+  },
+  base: {
+    network: base,
+    http: "https://mainnet.base.org",
+  },
+};
+
+// Change this to the chain you want to use
+const CHAIN_USED = chains.baseSepolia.network;
+const HTTP_CLIENT_USED = chains.baseSepolia.http;
+
+const pimlicoUrl = `https://api.pimlico.io/v2/${CHAIN_USED.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
 
 export const CombinedVoteBurnerPaymaster = ({
   contractAddress,
@@ -112,10 +137,9 @@ export const CombinedVoteBurnerPaymaster = ({
   }, [userAddress, setVoteChoice]);
 
   // Pimlico + ERC-4337 setup (mirrors VoteWithBurnerPaymaster)
-  const apiKey = "pim_4m62oHMPzK43c7EUsXmnFa";
-  const pimlicoUrl = `https://api.pimlico.io/v2/${baseSepolia.id}/rpc?apikey=${apiKey}`;
+
   const pimlicoClient = createPimlicoClient({
-    chain: baseSepolia,
+    chain: CHAIN_USED,
     transport: http(pimlicoUrl),
     entryPoint: { address: entryPoint07Address, version: "0.7" as EntryPointVersion },
   });
@@ -125,7 +149,7 @@ export const CombinedVoteBurnerPaymaster = ({
     const privateKey = generatePrivateKey();
     const wallet = privateKeyToAccount(privateKey);
 
-    const publicClient = createPublicClient({ chain: baseSepolia, transport: http("https://sepolia.base.org") });
+    const publicClient = createPublicClient({ chain: CHAIN_USED, transport: http(HTTP_CLIENT_USED) });
 
     const account = await toSafeSmartAccount({
       client: publicClient,
@@ -135,7 +159,7 @@ export const CombinedVoteBurnerPaymaster = ({
 
     const smartAccountClient = createSmartAccountClient({
       account,
-      chain: baseSepolia,
+      chain: CHAIN_USED,
       bundlerTransport: http(pimlicoUrl),
       paymaster: pimlicoClient,
       userOperation: {
