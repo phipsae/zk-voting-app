@@ -59,22 +59,15 @@ export const CombinedVoteBurnerPaymaster = ({
   leafEvents?: any[];
 }) => {
   const { commitmentData, voteChoice, setVoteChoice, setProofData, setCommitmentData } = useGlobalState();
-  // const { proofData } = useGlobalState();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // const [isProofAlertCollapsed, setIsProofAlertCollapsed] = useState(true);
   const [hasStoredProofData, setHasStoredProofData] = useState(false);
   const [storedVoteChoice, setStoredVoteChoice] = useState<boolean | null>(null);
   const [loadedCommitmentData, setLoadedCommitmentData] = useState<any>(null);
   const [voteStatus, setVoteStatus] = useState<"pending" | "success" | "failed" | null>(null);
-  // const { copyToClipboard, isCopiedToClipboard } = useCopyToClipboard();
+  const [voteMeta, setVoteMeta] = useState<any>(null);
+  const [isTxDetailsOpen, setIsTxDetailsOpen] = useState(false);
   const { address: userAddress, isConnected } = useAccount();
 
-  // uint256 treeSize,
-  //           uint256 treeDepth,
-  //           uint256 treeRoot,
-  //           bool isVoterStatus,
-  //           bool hasRegisteredStatus,
-  //           uint256 registrationDeadline
   const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
     functionName: "getVotingData",
@@ -107,8 +100,9 @@ export const CombinedVoteBurnerPaymaster = ({
     }
 
     // Load vote status from localStorage
-    const voteMeta = getStoredVoteMetadata(contractAddress, userAddress);
-    setVoteStatus((voteMeta?.status as any) ?? null);
+    const meta = getStoredVoteMetadata(contractAddress, userAddress);
+    setVoteStatus((meta?.status as any) ?? null);
+    setVoteMeta(meta ?? null);
 
     // Reset submission state when address changes
     setIsSubmitting(false);
@@ -121,6 +115,7 @@ export const CombinedVoteBurnerPaymaster = ({
       const meta = getStoredVoteMetadata(contractAddress, userAddress);
       if (meta?.status) setVoteStatus(meta.status as any);
       if (typeof meta?.voteChoice === "boolean") setStoredVoteChoice(meta.voteChoice);
+      setVoteMeta(meta ?? null);
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -135,6 +130,7 @@ export const CombinedVoteBurnerPaymaster = ({
       if (meta?.status && meta.status !== "pending") {
         setVoteStatus(meta.status as any);
         if (typeof meta.voteChoice === "boolean") setStoredVoteChoice(meta.voteChoice);
+        setVoteMeta(meta ?? null);
         clearInterval(id);
       }
     }, 1500);
@@ -276,6 +272,18 @@ export const CombinedVoteBurnerPaymaster = ({
         "pending",
       );
       setVoteStatus("pending");
+      setVoteMeta(
+        getStoredVoteMetadata(contractAddress, userAddress) ?? {
+          voteChoice,
+          txHash: userOpHash,
+          status: "pending",
+          contractAddress,
+          userAddress,
+          smartAccountAddress: accountAddress,
+          burnerAddress,
+          timestamp: Date.now(),
+        },
+      );
 
       const receipt = await pimlicoClient.waitForUserOperationReceipt({ hash: userOpHash });
       console.log("Transaction included:", receipt);
@@ -293,6 +301,7 @@ export const CombinedVoteBurnerPaymaster = ({
         });
       }
       setVoteStatus("success");
+      setVoteMeta(getStoredVoteMetadata(contractAddress, userAddress));
       notification.success("Vote submitted successfully");
     } catch (err) {
       console.error(err);
@@ -311,6 +320,7 @@ export const CombinedVoteBurnerPaymaster = ({
           });
         } catch {}
         setVoteStatus("success");
+        setVoteMeta(getStoredVoteMetadata(contractAddress, userAddress));
         // Optionally notify success on timeout
         // notification.success("Vote submitted (confirmation timed out, will appear shortly)");
       } else {
@@ -322,6 +332,7 @@ export const CombinedVoteBurnerPaymaster = ({
           });
         } catch {}
         setVoteStatus("failed");
+        setVoteMeta(getStoredVoteMetadata(contractAddress, userAddress));
       }
     } finally {
       setIsSubmitting(false);
@@ -329,8 +340,65 @@ export const CombinedVoteBurnerPaymaster = ({
   };
 
   return (
-    <div className="bg-base-100 shadow rounded-xl p-6 space-y-6">
-      {/* Commitment Data Status */}
+    <div className="bg-base-100 shadow rounded-xl p-6 space-y-6 relative">
+      <div className="flex justify-end">
+        {voteMeta && (
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => setIsTxDetailsOpen(v => !v)}
+            title="Show vote transaction details"
+          >
+            {isTxDetailsOpen ? "Hide tx" : "Tx details"}
+          </button>
+        )}
+      </div>
+      {isTxDetailsOpen && voteMeta && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-14 z-10 p-3 rounded-lg bg-base-200 shadow text-xs space-y-1 w-[min(90vw,32rem)]">
+          <div>
+            <span className="opacity-70">Status:</span> {voteMeta.status ?? "—"}
+          </div>
+          {typeof voteMeta.voteChoice === "boolean" && (
+            <div>
+              <span className="opacity-70">Choice:</span> {voteMeta.voteChoice ? "YES" : "NO"}
+            </div>
+          )}
+          {voteMeta.txHash && (
+            <div className="break-all">
+              <span className="opacity-70">Tx hash:</span> {voteMeta.txHash}
+            </div>
+          )}
+          {voteMeta.blockNumber && (
+            <div>
+              <span className="opacity-70">Block:</span> {voteMeta.blockNumber}
+            </div>
+          )}
+          {voteMeta.smartAccountAddress && (
+            <div className="break-all">
+              <span className="opacity-70">Smart account:</span> {voteMeta.smartAccountAddress}
+            </div>
+          )}
+          {voteMeta.burnerAddress && (
+            <div className="break-all">
+              <span className="opacity-70">Burner:</span> {voteMeta.burnerAddress}
+            </div>
+          )}
+          {voteMeta.contractAddress && (
+            <div className="break-all">
+              <span className="opacity-70">Contract:</span> {voteMeta.contractAddress}
+            </div>
+          )}
+          {voteMeta.timestamp && (
+            <div>
+              <span className="opacity-70">Time:</span> {new Date(voteMeta.timestamp).toLocaleString()}
+            </div>
+          )}
+          {voteMeta.error && (
+            <div className="text-error break-all">
+              <span className="opacity-70">Error:</span> {voteMeta.error}
+            </div>
+          )}
+        </div>
+      )}
       {loadedCommitmentData && !commitmentData && (
         <div className="alert alert-info">
           <div className="flex items-center gap-2">
