@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import ListVotings from "./_components/ListVotings";
 import { NextPage } from "next";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
@@ -11,14 +11,34 @@ const Home: NextPage = () => {
   });
 
   const [question, setQuestion] = useState("");
+  const [duration, setDuration] = useState<string>("30");
+  const [unit, setUnit] = useState<"minutes" | "hours" | "days">("minutes");
+
+  const durationInSeconds = useMemo(() => {
+    const parsed = parseInt(duration, 10);
+    if (isNaN(parsed) || parsed <= 0) return 0n;
+    const base = BigInt(parsed);
+    switch (unit) {
+      case "minutes":
+        return base * 60n;
+      case "hours":
+        return base * 3600n;
+      case "days":
+        return base * 86400n;
+      default:
+        return 0n;
+    }
+  }, [duration, unit]);
   const handleCreateVoting = async () => {
     try {
       await writeVotingAsync({
         functionName: "createVoting",
-        args: [question, 30n],
+        args: [question, durationInSeconds],
       });
       // Clear the question after successful creation
       setQuestion("");
+      setDuration("30");
+      setUnit("minutes");
     } catch (error) {
       console.error("Failed to create voting:", error);
     }
@@ -47,7 +67,7 @@ const Home: NextPage = () => {
               value={question}
               onChange={e => setQuestion(e.target.value)}
               onKeyDown={e => {
-                if (e.key === "Enter" && !isMining && question.trim()) {
+                if (e.key === "Enter" && !isMining && question.trim() && durationInSeconds > 0n) {
                   void handleCreateVoting();
                 }
               }}
@@ -55,8 +75,43 @@ const Home: NextPage = () => {
             />
           </div>
 
+          <div className="w-full grid grid-cols-3 gap-2 items-end">
+            <div className="form-control col-span-2">
+              <label className="label">
+                <span className="label-text font-medium">Registration period</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                placeholder="30"
+                className="input input-bordered w-full"
+                value={duration}
+                onChange={e => setDuration(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Unit</span>
+              </label>
+              <select
+                className="select select-bordered w-full"
+                value={unit}
+                onChange={e => setUnit(e.target.value as typeof unit)}
+              >
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
+            </div>
+          </div>
+
           <div className="flex justify-center">
-            <button className="btn btn-primary" onClick={handleCreateVoting} disabled={isMining || !question.trim()}>
+            <button
+              className="btn btn-primary"
+              onClick={handleCreateVoting}
+              disabled={isMining || !question.trim() || durationInSeconds <= 0n}
+            >
               {isMining ? (
                 <>
                   <span className="loading loading-spinner loading-sm"></span>
