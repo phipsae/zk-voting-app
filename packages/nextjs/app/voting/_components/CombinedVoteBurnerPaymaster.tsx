@@ -67,6 +67,7 @@ export const CombinedVoteBurnerPaymaster = ({
   const [voteMeta, setVoteMeta] = useState<any>(null);
   const [isTxDetailsOpen, setIsTxDetailsOpen] = useState(false);
   const { address: userAddress, isConnected } = useAccount();
+  const [nowSec, setNowSec] = useState<number>(Math.floor(Date.now() / 1000));
 
   const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -80,11 +81,21 @@ export const CombinedVoteBurnerPaymaster = ({
   const root = votingDataArray?.[2] as bigint;
   const isVoter = votingDataArray?.[3] as boolean;
   const hasRegistered = votingDataArray?.[4] as boolean;
+  const registrationDeadline = votingDataArray?.[5] as bigint;
+  const now = BigInt(nowSec);
+  const isVotingOpen = typeof registrationDeadline === "bigint" ? now > registrationDeadline : false;
 
   const { data: contractInfo } = useDeployedContractInfo({ contractName: "Voting" });
 
   // Determine if user can vote
-  const canVote = Boolean(isConnected && isVoter === true && hasRegistered === true);
+  const canVoteEligible = Boolean(isConnected && isVoter === true && hasRegistered === true);
+  const canVote = Boolean(canVoteEligible && isVotingOpen);
+
+  // Keep current time updated for deadline checks
+  useEffect(() => {
+    const id = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Check for stored proof data on mount and when user/contract changes
   useEffect(() => {
@@ -470,7 +481,9 @@ export const CombinedVoteBurnerPaymaster = ({
               : isSubmitting
                 ? "Generating & submitting..."
                 : !canVote
-                  ? "Must register first"
+                  ? canVoteEligible
+                    ? "Voting not open yet"
+                    : "Must register first"
                   : "Vote";
           const variant = isAlreadyVoted
             ? "btn-success"

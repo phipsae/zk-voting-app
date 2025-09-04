@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Fr } from "@aztec/bb.js";
 import { ethers } from "ethers";
 import { poseidon2 } from "poseidon-lite";
@@ -29,6 +29,11 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
   const { setCommitmentData, commitmentData } = useGlobalState();
 
   const { address: userAddress, isConnected } = useAccount();
+  const [nowSec, setNowSec] = useState<number>(Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const id = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -40,8 +45,11 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
   const votingDataArray = votingData as unknown as any[];
   const isVoter = votingDataArray?.[3] as boolean;
   const hasRegistered = votingDataArray?.[4] as boolean;
+  const registrationDeadline = votingDataArray?.[5] as bigint;
+  const now = BigInt(nowSec);
+  const isRegistrationOpen = typeof registrationDeadline === "bigint" ? now <= registrationDeadline : true;
 
-  const canRegister = Boolean(isConnected && isVoter !== false && hasRegistered !== true);
+  const canRegister = Boolean(isConnected && isVoter !== false && hasRegistered !== true && isRegistrationOpen);
 
   const { writeContractAsync } = useScaffoldWriteContract({
     contractName: "Voting",
@@ -142,6 +150,8 @@ export const CreateCommitment = ({ leafEvents = [], contractAddress, compact = f
             "Not eligible - not on voters list"
           ) : hasRegistered === true ? (
             "✓ Already registered for this vote"
+          ) : !isRegistrationOpen ? (
+            "Registration closed"
           ) : (
             "Register to vote"
           )}
