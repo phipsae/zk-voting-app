@@ -36,46 +36,119 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   //   autoMine: true,
   // });
 
+  // console.log("poseidon3 deployed to:", poseidon3.address);
+
+  // const poseidon3AddressMainnet = "0xaE8413714De50a2F0c139C3310c9d31136a5b050";
+
   // const leanIMT = await deploy("LeanIMT", {
   //   from: deployer,
   //   log: true,
   //   autoMine: true,
   //   libraries: {
   //     // LeanIMT: leanIMT.address,
-  //     PoseidonT3: poseidon3.address,
+  //     PoseidonT3: poseidon3AddressMainnet,
   //   },
   // });
 
   // console.log("leanIMT deployed to:", leanIMT.address);
 
-  const leanIMTAddress = "0xcF4ac52079F69C93904e2A4a379cAd1F0C8dA0A9";
-  // const honkVerifierAddress = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
-  const verifier = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
+  ////////////////////
+  /// baseSepolia//////
+  ////////////////////
+
+  // const leanIMTAddress = "0xcF4ac52079F69C93904e2A4a379cAd1F0C8dA0A9";
+  // const verifier = "0x57275b39250dB7cf77F98Afb532fE3eA421a43B3";
+
+  //   await deploy("VotingFactory", {
+  //     from: deployer,
+  //     args: [verifier],
+  //     log: true,
+  //     autoMine: true,
+  //     libraries: {
+  //       LeanIMT: leanIMTAddress,
+  //     },
+  //   });
+
+  //   await deploy("Voting", {
+  //     from: deployer,
+  //     // Contract constructor arguments
+  //     args: [verifier, "Should we build a new bridge?", 0],
+  //     log: true,
+  //     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+  //     // automatically mining the contract deployment transaction. There is no effect on live networks.
+  //     autoMine: true,
+  //     libraries: {
+  //       LeanIMT: leanIMTAddress,
+  //       // PoseidonT3: poseidon3.address,
+  //       // PoseidonT2: poseidon2.address,
+  //     },
+  //   });
+  // };
+
+  ////////////////////////////////
+  /// Sepolia//////////////////////
+  ////////////////////////////////
+
+  //   const leanIMTAddressSepolia = "0x763A0DEc250CcD8964C634d5fCA2Fc36Ed672e2e";
+  //   const verifierSepolia = "0x70655B28C46c8f21f5e300C189C16046C2F014Fc";
+
+  //   await deploy("VotingFactory", {
+  //     from: deployer,
+  //     args: [verifierSepolia],
+  //     log: true,
+  //     autoMine: true,
+  //     libraries: {
+  //       LeanIMT: leanIMTAddressSepolia,
+  //     },
+  //   });
+
+  //   await deploy("Voting", {
+  //     from: deployer,
+  //     // Contract constructor arguments
+  //     args: [verifierSepolia, "Should we build a new bridge?", 0],
+  //     log: true,
+  //     // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+  //     // automatically mining the contract deployment transaction. There is no effect on live networks.
+  //     autoMine: true,
+  //     libraries: {
+  //       LeanIMT: leanIMTAddressSepolia,
+  //       // PoseidonT3: poseidon3.address,
+  //       // PoseidonT2: poseidon2.address,
+  //     },
+  //   });
+  // };
+
+  ////////////////////////////////
+  /// Mainnet//////////////////////
+  ////////////////////////////////
+
+  const verifierMainnet = "0x9b54cF6B445729e408769c91Ba392c33c0971E36";
+  const leanIMTAddressMainnet = "0x45B70D06E5334E4F7b11Fcc9Be75c3E0eE11FA72";
 
   await deploy("VotingFactory", {
     from: deployer,
-    args: [verifier],
+    args: [verifierMainnet],
     log: true,
     autoMine: true,
     libraries: {
-      LeanIMT: leanIMTAddress,
+      LeanIMT: leanIMTAddressMainnet,
     },
   });
 
-  await deploy("Voting", {
-    from: deployer,
-    // Contract constructor arguments
-    args: [verifier, "Should we build a new bridge?", 0],
-    log: true,
-    // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
-    // automatically mining the contract deployment transaction. There is no effect on live networks.
-    autoMine: true,
-    libraries: {
-      LeanIMT: leanIMTAddress,
-      // PoseidonT3: poseidon3.address,
-      // PoseidonT2: poseidon2.address,
-    },
-  });
+  // await deploy("Voting", {
+  //   from: deployer,
+  //   // Contract constructor arguments
+  //   args: [verifierMainnet, "Should we build a new bridge?", 0],
+  //   log: true,
+  //   // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+  //   // automatically mining the contract deployment transaction. There is no effect on live networks.
+  //   autoMine: true,
+  //   libraries: {
+  //     LeanIMT: leanIMTAddressMainnet,
+  //     // PoseidonT3: poseidon3.address,
+  //     // PoseidonT2: poseidon2.address,
+  //   },
+  // });
 };
 
 export default deployYourContract;

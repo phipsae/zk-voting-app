@@ -33,7 +33,7 @@ const chains = {
   },
   sepolia: {
     network: sepolia,
-    // http: "https://sepolia.alchemyapi.io/v2/your-api-key",
+    http: "https://rpc.sepolia.org",
   },
   mainnet: {
     network: mainnet,
@@ -46,8 +46,8 @@ const chains = {
 };
 
 // Change this to the chain you want to use
-const CHAIN_USED = chains.baseSepolia.network;
-const HTTP_CLIENT_USED = chains.baseSepolia.http;
+const CHAIN_USED = chains.sepolia.network;
+const HTTP_CLIENT_USED = chains.sepolia.http;
 
 const pimlicoUrl = `https://api.pimlico.io/v2/${CHAIN_USED.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
 
