@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { getAddress } from "viem";
+import { base } from "viem/chains";
+import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
 
 type VotingItem = {
@@ -23,22 +25,41 @@ const ListVotings = () => {
     createdAtBlock: number;
   };
 
-  type VotingsData = { votingss: { items: VotingEvent[] } };
+  const { chain } = useAccount();
+
+  type NetworkVotingsData = {
+    votings: { items: VotingEvent[] };
+  };
 
   const fetchVotings = async () => {
-    const VotingsQuery = gql`
-      query Votings {
-        votingss {
-          items {
-            address
-            creator
-            question
-            createdAtBlock
+    const isBase = chain?.id === base.id;
+    const VotingsQuery = isBase
+      ? gql`
+          query BaseVotings {
+            votings: baseVotingss {
+              items {
+                address
+                creator
+                question
+                createdAtBlock
+              }
+            }
           }
-        }
-      }
-    `;
-    const data = await request<VotingsData>(
+        `
+      : gql`
+          query MainnetVotings {
+            votings: mainnetVotingss {
+              items {
+                address
+                creator
+                question
+                createdAtBlock
+              }
+            }
+          }
+        `;
+
+    const data = await request<NetworkVotingsData>(
       process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069",
       VotingsQuery,
     );
@@ -50,7 +71,7 @@ const ListVotings = () => {
     isPending,
     isError,
   } = useQuery({
-    queryKey: ["votings"],
+    queryKey: ["votings", chain?.id],
     queryFn: fetchVotings,
     refetchInterval: 5000, // Refetch every 5 seconds as fallback
   });
@@ -60,7 +81,8 @@ const ListVotings = () => {
 
     // Add items from GraphQL data (Ponder indexer)
     if (votingsData) {
-      for (const evt of votingsData.votingss.items.filter(Boolean)) {
+      const items = (votingsData as NetworkVotingsData)?.votings?.items ?? [];
+      for (const evt of items.filter(Boolean)) {
         const rawVotingAddr = evt.address as `0x${string}` | undefined;
         if (!rawVotingAddr) continue;
         const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;

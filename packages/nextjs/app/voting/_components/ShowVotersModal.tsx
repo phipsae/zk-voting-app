@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
+import { base } from "viem/chains";
+import { useAccount } from "wagmi";
 import { EyeIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
@@ -12,36 +14,47 @@ type ShowVotersModalProps = {
 };
 
 type VoterRow = { votingAddress: string; voter: string };
-type VotersData = { voterss: { items: VoterRow[] } };
+type NetworkVotersData = { voters: { items: VoterRow[] } };
 
-const VotersQuery = gql/* GraphQL */ `
-  query Voters($addr: String!) {
-    voterss(where: { votingAddress: $addr }) {
-      items {
-        votingAddress
-        voter
-      }
-    }
-  }
-`;
-
-async function fetchVoters(votingAddress: string) {
+async function fetchVoters(votingAddress: string, isBase: boolean) {
   const endpoint = process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069";
-  const data = await request<VotersData>(endpoint, VotersQuery, {
-    addr: votingAddress.toLowerCase(),
-  });
-  return data.voterss.items;
+  const VotersQuery = isBase
+    ? gql`
+        query BaseVoters {
+          voters: baseVoterss {
+            items {
+              voter
+              votingAddress
+            }
+          }
+        }
+      `
+    : gql`
+        query MainnetVoters {
+          voters: mainnetVoterss {
+            items {
+              voter
+              votingAddress
+            }
+          }
+        }
+      `;
+  const data = await request<NetworkVotersData>(endpoint, VotersQuery);
+  const items = data?.voters?.items ?? [];
+  return items.filter(row => row.votingAddress?.toLowerCase() === votingAddress.toLowerCase());
 }
 
 export const ShowVotersModal = ({ contractAddress }: ShowVotersModalProps) => {
+  const { chain } = useAccount();
+  const isBase = chain?.id === base.id;
   // Fetch all voters using GraphQL query
   const {
     data: voterData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["voterss", contractAddress],
-    queryFn: () => fetchVoters(contractAddress),
+    queryKey: ["voters", contractAddress, chain?.id],
+    queryFn: () => fetchVoters(contractAddress, Boolean(isBase)),
     enabled: Boolean(contractAddress && contractAddress.length === 42),
     // light polling so UI picks up new voters soon after indexer writes them
     refetchInterval: 2000,

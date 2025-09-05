@@ -4,6 +4,8 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
+import { base } from "viem/chains";
+import { useAccount } from "wagmi";
 import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
 import { CombinedVoteBurnerPaymaster } from "~~/app/voting/_components/CombinedVoteBurnerPaymaster";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
@@ -11,39 +13,70 @@ import { LogLocalStorage } from "~~/app/voting/_components/LogLocalStorage";
 import { ShowVotersModal } from "~~/app/voting/_components/ShowVotersModal";
 import { VotingStats } from "~~/app/voting/_components/VotingStats";
 
-type LeafRow = { index: string; value: string };
-type LeavesData = { leavess: { items: LeafRow[] } };
+interface LeavesData {
+  leaves: {
+    items: {
+      votingAddress: string;
+      index: string;
+      value: string;
+    }[];
+  };
+}
 
-const LeavesQuery = gql/* GraphQL */ `
-  query Leaves($addr: String!, $limit: Int = 200) {
-    leavess(where: { votingAddress: $addr }, orderBy: "indexNum", orderDirection: "desc", limit: $limit) {
-      items {
-        index
-        value
-      }
-    }
-  }
-`;
-
-async function fetchLeaves(votingAddress: string, limit = 200) {
+async function fetchLeaves(votingAddress: string, isBase: boolean, limit = 200) {
   const endpoint = process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069";
+  const LeavesQuery = isBase
+    ? gql/* GraphQL */ `
+        query BaseLeaves($addr: String!, $limit: Int = 200) {
+          leaves: baseLeavess(
+            where: { votingAddress: $addr }
+            orderBy: "indexNum"
+            orderDirection: "desc"
+            limit: $limit
+          ) {
+            items {
+              votingAddress
+              index
+              value
+            }
+          }
+        }
+      `
+    : gql/* GraphQL */ `
+        query MainnetLeaves($addr: String!, $limit: Int = 200) {
+          leaves: mainnetLeavess(
+            where: { votingAddress: $addr }
+            orderBy: "indexNum"
+            orderDirection: "desc"
+            limit: $limit
+          ) {
+            items {
+              votingAddress
+              index
+              value
+            }
+          }
+        }
+      `;
   const data = await request<LeavesData>(endpoint, LeavesQuery, {
     addr: votingAddress.toLowerCase(),
     limit,
   });
-  return data.leavess.items;
+  return data.leaves.items;
 }
 
 export default function VotingByAddressPage() {
   const params = useParams<{ address: `0x${string}` }>();
   const address = params?.address as `0x${string}` | undefined;
+  const { chain } = useAccount();
+  const isBase = chain?.id === base.id;
 
   // Guard: no address in URL yet
   const enabled = Boolean(address && address.length === 42);
 
   const { data } = useQuery({
-    queryKey: ["leavess", address],
-    queryFn: () => fetchLeaves(address!),
+    queryKey: ["leavess", address, chain?.id],
+    queryFn: () => fetchLeaves(address!, Boolean(isBase)),
     enabled,
     // light polling so UI picks up rows soon after indexer writes them
     refetchInterval: 2000,
