@@ -34,6 +34,8 @@ const Home: NextPage = () => {
       await writeVotingAsync({
         functionName: "createVoting",
         args: [question, durationInSeconds],
+        // Slightly above measured need (1,060,858) to avoid RPC 1,000,000 gas cap during simulation
+        gas: 1100000n,
       });
       // Clear the question after successful creation
       setQuestion("");

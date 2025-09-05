@@ -39,6 +39,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   // console.log("poseidon3 deployed to:", poseidon3.address);
 
   // const poseidon3AddressMainnet = "0xaE8413714De50a2F0c139C3310c9d31136a5b050";
+  // const poseidon3AddressBase = "0xB288971E6CD60516DBCEF413165B2A7944e04fC3";
 
   // const leanIMT = await deploy("LeanIMT", {
   //   from: deployer,
@@ -46,7 +47,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   //   autoMine: true,
   //   libraries: {
   //     // LeanIMT: leanIMT.address,
-  //     PoseidonT3: poseidon3AddressMainnet,
+  //     PoseidonT3: poseidon3AddressBase,
   //   },
   // });
 
@@ -118,22 +119,54 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   //   });
   // };
 
+  ////////////////////
+  /// base//////
+  ////////////////////
+
+  const verifierBase = "0xE7F9d8283681dC05415ED81a01fbA8879AD4A256";
+  const leanIMTAddressBase = "0x8914Ef87823d7B1cBbB2FB6c0E81ec232f258224";
+
+  await deploy("VotingFactory", {
+    from: deployer,
+    args: [verifierBase],
+    log: true,
+    autoMine: true,
+    libraries: {
+      LeanIMT: leanIMTAddressBase,
+    },
+  });
+
+  await deploy("Voting", {
+    from: deployer,
+    // Contract constructor arguments
+    args: [verifierBase, "Should we build a new bridge?", 0],
+    log: true,
+    // autoMine: can be passed to the deploy function to make the deployment process faster on local networks by
+    // automatically mining the contract deployment transaction. There is no effect on live networks.
+    autoMine: true,
+    libraries: {
+      LeanIMT: leanIMTAddressBase,
+      // PoseidonT3: poseidon3.address,
+      // PoseidonT2: poseidon2.address,
+    },
+  });
+
   ////////////////////////////////
   /// Mainnet//////////////////////
   ////////////////////////////////
 
-  const verifierMainnet = "0x9b54cF6B445729e408769c91Ba392c33c0971E36";
-  const leanIMTAddressMainnet = "0x45B70D06E5334E4F7b11Fcc9Be75c3E0eE11FA72";
+  // const verifierMainnet = "0x9b54cF6B445729e408769c91Ba392c33c0971E36";
+  // const leanIMTAddressMainnet = "0x45B70D06E5334E4F7b11Fcc9Be75c3E0eE11FA72";
 
-  await deploy("VotingFactory", {
-    from: deployer,
-    args: [verifierMainnet],
-    log: true,
-    autoMine: true,
-    libraries: {
-      LeanIMT: leanIMTAddressMainnet,
-    },
-  });
+  // await deploy("VotingFactory", {
+  //   from: deployer,
+  //   args: [verifierMainnet],
+  //   log: true,
+  //   autoMine: true,
+  //   libraries: {
+  //     LeanIMT: leanIMTAddressMainnet,
+  //   },
+  // });
 
   // await deploy("Voting", {
   //   from: deployer,

@@ -9,8 +9,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract Voting is Ownable {
     using LeanIMT for LeanIMTData;
 
-    uint256 constant MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
-
     IVerifier public immutable i_verifier;
     string public s_question;
     uint256 public immutable i_registrationDeadline;
