@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { UltraHonkBackend } from "@aztec/bb.js";
 import { Noir } from "@noir-lang/noir_js";
 import { LeanIMT } from "@zk-kit/lean-imt";
@@ -14,8 +14,10 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia, mainnet, sepolia } from "viem/chains";
 import { useAccount } from "wagmi";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import {
+  type AllowedChainIds,
   getStoredProofMetadata,
   getStoredVoteMetadata,
   hasStoredProof,
@@ -45,12 +47,6 @@ const chains = {
   },
 };
 
-// Change this to the chain you want to use
-const CHAIN_USED = chains.mainnet.network;
-const HTTP_CLIENT_USED = chains.mainnet.http;
-
-const pimlicoUrl = `https://api.pimlico.io/v2/${CHAIN_USED.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
-
 export const CombinedVoteBurnerPaymaster = ({
   contractAddress,
   leafEvents = [],
@@ -66,8 +62,17 @@ export const CombinedVoteBurnerPaymaster = ({
   const [voteStatus, setVoteStatus] = useState<"pending" | "success" | "failed" | null>(null);
   const [voteMeta, setVoteMeta] = useState<any>(null);
   const [isTxDetailsOpen, setIsTxDetailsOpen] = useState(false);
-  const { address: userAddress, isConnected } = useAccount();
+  const { address: userAddress, isConnected, chain } = useAccount();
   const [nowSec, setNowSec] = useState<number>(Math.floor(Date.now() / 1000));
+  const selectedNetwork = useSelectedNetwork(chain?.id as AllowedChainIds | undefined);
+  const DEBUG = process.env.NEXT_PUBLIC_DEBUG_LOGS === "true";
+  const { CHAIN_USED, HTTP_CLIENT_USED, pimlicoUrl } = useMemo(() => {
+    const selectedChainConfig = Object.values(chains).find(cfg => cfg.network.id === selectedNetwork.id);
+    const chainUsed = selectedNetwork;
+    const httpClientUsed = selectedChainConfig?.http || selectedNetwork.rpcUrls?.default?.http?.[0] || "";
+    const pimlico = `https://api.pimlico.io/v2/${chainUsed.id}/rpc?apikey=${process.env.NEXT_PUBLIC_PIMLICO_API_KEY}`;
+    return { CHAIN_USED: chainUsed, HTTP_CLIENT_USED: httpClientUsed, pimlicoUrl: pimlico };
+  }, [selectedNetwork]);
 
   const { data: votingData } = useScaffoldReadContract({
     contractName: "Voting",
@@ -90,6 +95,7 @@ export const CombinedVoteBurnerPaymaster = ({
   // Determine if user can vote
   const canVoteEligible = Boolean(isConnected && isVoter === true && hasRegistered === true);
   const canVote = Boolean(canVoteEligible && isVotingOpen);
+  const selectionLocked = Boolean(hasStoredProofData && voteStatus !== "failed");
 
   // Keep current time updated for deadline checks
   useEffect(() => {
@@ -168,13 +174,17 @@ export const CombinedVoteBurnerPaymaster = ({
     setVoteChoice(null);
   }, [userAddress, setVoteChoice]);
 
-  // Pimlico + ERC-4337 setup (mirrors VoteWithBurnerPaymaster)
+  // Pimlico + ERC-4337 setup
 
-  const pimlicoClient = createPimlicoClient({
-    chain: CHAIN_USED,
-    transport: http(pimlicoUrl),
-    entryPoint: { address: entryPoint07Address, version: "0.7" as EntryPointVersion },
-  });
+  const pimlicoClient = useMemo(
+    () =>
+      createPimlicoClient({
+        chain: CHAIN_USED,
+        transport: http(pimlicoUrl),
+        entryPoint: { address: entryPoint07Address, version: "0.7" as EntryPointVersion },
+      }),
+    [CHAIN_USED, pimlicoUrl],
+  );
 
   const createSmartAccount = async () => {
     // Create a random owner and initialize a Safe-based smart account
@@ -297,7 +307,7 @@ export const CombinedVoteBurnerPaymaster = ({
       );
 
       const receipt = await pimlicoClient.waitForUserOperationReceipt({ hash: userOpHash });
-      console.log("Transaction included:", receipt);
+      if (DEBUG) console.log("Transaction included:", receipt);
       const rawTxHash =
         (receipt as any)?.receipt?.transactionHash ||
         (receipt as any)?.transactionHash ||
@@ -444,8 +454,8 @@ export const CombinedVoteBurnerPaymaster = ({
                   ? "btn-success"
                   : "btn-outline"
             } ${!canVote && !hasStoredProofData ? "btn-disabled" : ""}`}
-            style={hasStoredProofData ? { pointerEvents: "none", cursor: "not-allowed" } : {}}
-            onClick={canVote && !hasStoredProofData ? () => setVoteChoice(true) : undefined}
+            style={selectionLocked ? { pointerEvents: "none", cursor: "not-allowed" } : {}}
+            onClick={canVote && !selectionLocked ? () => setVoteChoice(true) : undefined}
             disabled={!canVote && !hasStoredProofData}
           >
             Yes
@@ -458,8 +468,8 @@ export const CombinedVoteBurnerPaymaster = ({
                   ? "btn-error"
                   : "btn-outline"
             } ${!canVote && !hasStoredProofData ? "btn-disabled" : ""}`}
-            style={hasStoredProofData ? { pointerEvents: "none", cursor: "not-allowed" } : {}}
-            onClick={canVote && !hasStoredProofData ? () => setVoteChoice(false) : undefined}
+            style={selectionLocked ? { pointerEvents: "none", cursor: "not-allowed" } : {}}
+            onClick={canVote && !selectionLocked ? () => setVoteChoice(false) : undefined}
             disabled={!canVote && !hasStoredProofData}
           >
             No
