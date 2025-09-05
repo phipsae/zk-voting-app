@@ -219,8 +219,8 @@ export const CombinedVoteBurnerPaymaster = ({
   const handleGenerateAndVote = async () => {
     try {
       setIsSubmitting(true);
-
-      if (voteChoice === null) throw new Error("Please select Yes or No first");
+      const effectiveVoteChoice = voteChoice ?? storedVoteChoice;
+      if (effectiveVoteChoice === null) throw new Error("Please select Yes or No first");
 
       // Use commitment data from global state or loaded from localStorage as fallback
       const activeCommitmentData = commitmentData || loadedCommitmentData;
@@ -241,7 +241,7 @@ export const CombinedVoteBurnerPaymaster = ({
 
       const generated = await generateProof(
         root as bigint,
-        voteChoice,
+        effectiveVoteChoice,
         depth,
         activeCommitmentData.nullifier,
         activeCommitmentData.secret,
@@ -256,11 +256,11 @@ export const CombinedVoteBurnerPaymaster = ({
       saveProofToLocalStorage(
         { proof: generated.proof, publicInputs: generated.publicInputs },
         contractAddress,
-        voteChoice,
+        effectiveVoteChoice,
         userAddress,
       );
       setHasStoredProofData(true);
-      setStoredVoteChoice(voteChoice);
+      setStoredVoteChoice(effectiveVoteChoice);
 
       // Build calldata for Voting.vote
       const proofHex = uint8ArrayToHexString(generated.proof);
@@ -284,7 +284,7 @@ export const CombinedVoteBurnerPaymaster = ({
 
       // Record vote as pending using the userOp hash
       saveVoteToLocalStorage(
-        voteChoice,
+        effectiveVoteChoice,
         userOpHash,
         contractAddress,
         userAddress,
@@ -295,7 +295,7 @@ export const CombinedVoteBurnerPaymaster = ({
       setVoteStatus("pending");
       setVoteMeta(
         getStoredVoteMetadata(contractAddress, userAddress) ?? {
-          voteChoice,
+          voteChoice: effectiveVoteChoice,
           txHash: userOpHash,
           status: "pending",
           contractAddress,
