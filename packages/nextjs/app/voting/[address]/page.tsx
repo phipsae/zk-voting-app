@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
-import { base } from "viem/chains";
-import { useAccount } from "wagmi";
+import { base, mainnet } from "viem/chains";
+import { useAccount, usePublicClient } from "wagmi";
 import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
 import { CombinedVoteBurnerPaymaster } from "~~/app/voting/_components/CombinedVoteBurnerPaymaster";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
@@ -70,6 +70,8 @@ export default function VotingByAddressPage() {
   const address = params?.address as `0x${string}` | undefined;
   const { chain } = useAccount();
   const isBase = chain?.id === base.id;
+  const baseClient = usePublicClient({ chainId: base.id });
+  const mainnetClient = usePublicClient({ chainId: mainnet.id });
 
   // Guard: no address in URL yet
   const enabled = Boolean(address && address.length === 42);
@@ -81,6 +83,24 @@ export default function VotingByAddressPage() {
     // light polling so UI picks up rows soon after indexer writes them
     refetchInterval: 2000,
   });
+
+  // Detect on which network this contract address is deployed
+  const { data: baseBytecode } = useQuery({
+    queryKey: ["bytecode", "base", address],
+    queryFn: async () => (await baseClient!.getCode({ address: address! })) ?? "0x",
+    enabled: enabled && Boolean(baseClient),
+    staleTime: 60_000,
+  });
+  const { data: mainnetBytecode } = useQuery({
+    queryKey: ["bytecode", "mainnet", address],
+    queryFn: async () => (await mainnetClient!.getCode({ address: address! })) ?? "0x",
+    enabled: enabled && Boolean(mainnetClient),
+    staleTime: 60_000,
+  });
+
+  const contractOnBase = Boolean(baseBytecode && baseBytecode !== "0x");
+  const contractOnMainnet = Boolean(mainnetBytecode && mainnetBytecode !== "0x");
+  const showSwitchToBase = chain?.id === mainnet.id && contractOnBase && !contractOnMainnet;
 
   // Map GraphQL rows -> viem-like event array your components use
   const leavesEvents = useMemo(
@@ -112,6 +132,15 @@ export default function VotingByAddressPage() {
         ) : (
           <div className="flex flex-col items-center w-full">
             <div className="w-full max-w-2xl space-y-4 mt-6">
+              {showSwitchToBase && (
+                <div className="alert alert-warning">
+                  <span>
+                    This voting is deployed on Base, but your wallet is connected to Mainnet.
+                    <br />
+                    Please switch to Base to interact with this voting.
+                  </span>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 justify-between">
                 {address && <AddVotersModal contractAddress={address} />}
                 <div className="flex items-center gap-2">
