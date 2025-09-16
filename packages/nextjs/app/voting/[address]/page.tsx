@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { base, mainnet } from "viem/chains";
-import { useAccount, usePublicClient } from "wagmi";
+import { useAccount, usePublicClient, useSwitchChain } from "wagmi";
 import { AddVotersModal } from "~~/app/voting/_components/AddVotersModal";
 import { CombinedVoteBurnerPaymaster } from "~~/app/voting/_components/CombinedVoteBurnerPaymaster";
 import { CreateCommitment } from "~~/app/voting/_components/CreateCommitment";
@@ -72,6 +72,7 @@ export default function VotingByAddressPage() {
   const isBase = chain?.id === base.id;
   const baseClient = usePublicClient({ chainId: base.id });
   const mainnetClient = usePublicClient({ chainId: mainnet.id });
+  const { switchChain } = useSwitchChain();
 
   // Guard: no address in URL yet
   const enabled = Boolean(address && address.length === 42);
@@ -101,6 +102,7 @@ export default function VotingByAddressPage() {
   const contractOnBase = Boolean(baseBytecode && baseBytecode !== "0x");
   const contractOnMainnet = Boolean(mainnetBytecode && mainnetBytecode !== "0x");
   const showSwitchToBase = chain?.id === mainnet.id && contractOnBase && !contractOnMainnet;
+  const showSwitchToMainnet = chain?.id === base.id && contractOnMainnet && !contractOnBase;
 
   // Map GraphQL rows -> viem-like event array your components use
   const leavesEvents = useMemo(
@@ -133,12 +135,36 @@ export default function VotingByAddressPage() {
           <div className="flex flex-col items-center w-full">
             <div className="w-full max-w-2xl space-y-4 mt-6">
               {showSwitchToBase && (
-                <div className="alert alert-warning">
+                <div className="alert alert-warning flex items-center justify-between">
                   <span>
                     This voting is deployed on Base, but your wallet is connected to Mainnet.
                     <br />
                     Please switch to Base to interact with this voting.
                   </span>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => switchChain?.({ chainId: base.id })}
+                  >
+                    Switch to Base
+                  </button>
+                </div>
+              )}
+
+              {showSwitchToMainnet && (
+                <div className="alert alert-warning flex items-center justify-between">
+                  <span>
+                    This voting is deployed on Mainnet, but your wallet is connected to Base.
+                    <br />
+                    Please switch to Mainnet to interact with this voting.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() => switchChain?.({ chainId: mainnet.id })}
+                  >
+                    Switch to Mainnet
+                  </button>
                 </div>
               )}
               <div className="flex flex-wrap gap-2 justify-between">
