@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import VotingStatus from "./VotingStatus";
 import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { getAddress } from "viem";
@@ -144,6 +145,7 @@ const OwnedVotings = () => {
                 <div className="text-lg font-medium break-words line-clamp-2 min-h-[3.5rem]">
                   {v.question || "(no question)"}
                 </div>
+                <VotingStatus votingAddress={v.voting} />
                 <div className="text-sm opacity-70 min-h-[1.75rem] flex items-start">
                   <span className="mr-1">Creator:</span>
                   <Address address={v.creator} size="xs" />
