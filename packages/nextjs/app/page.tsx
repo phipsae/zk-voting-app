@@ -15,11 +15,11 @@ const Home: NextPage = () => {
         <div className="max-w-6xl mx-auto px-8 py-12">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex-1 space-y-4">
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 leading-tight pb-2">
                 Privacy Voting
               </h1>
               <p className="text-xl opacity-70 max-w-2xl">
-                Create privatevoting sessions with registration periods. Participants register, vote privately, and
+                Create private voting sessions with registration periods. Participants register, vote privately, and
                 maintain full transparency.
               </p>
             </div>
