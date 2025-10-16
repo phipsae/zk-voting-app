@@ -15,23 +15,44 @@ type VotingItem = {
   question: string;
   blockNumber?: bigint;
   transactionHash?: `0x${string}`;
+  isOnAllowlist?: boolean;
 };
 
-const ListVotings = () => {
+const ParticipatedVotings = () => {
   type VotingEvent = {
     address: `0x${string}`;
     creator: `0x${string}`;
     question: string;
     createdAtBlock: number;
+    isOnAllowlist?: boolean;
   };
 
-  const { chain } = useAccount();
+  const { address, chain } = useAccount();
 
   type NetworkVotingsData = {
     votings: { items: VotingEvent[] };
   };
 
+  // Function to check if user is on allowlist for a voting
+  const checkAllowlistStatus = async (votingAddress: string, userAddress: string) => {
+    const network = chain?.id === base.id ? "base" : "mainnet";
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069"}/allowlist/${network}/${votingAddress}/${userAddress}`,
+      );
+      const data = await response.json();
+      console.log("data", data);
+      return data.isOnAllowlist || false;
+    } catch (error) {
+      console.error("Failed to check allowlist status:", error);
+      return false;
+    }
+  };
+
   const fetchVotings = async () => {
+    if (!address) return { votings: { items: [] } };
+
     const isBase = chain?.id === base.id;
     const VotingsQuery = isBase
       ? gql`
@@ -63,7 +84,17 @@ const ListVotings = () => {
       process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069",
       VotingsQuery,
     );
-    return data;
+
+    // Check allowlist status for each voting
+    const itemsWithAllowlistStatus = await Promise.all(
+      data.votings.items.map(async item => {
+        const isOnAllowlist = await checkAllowlistStatus(item.address, address);
+        console.log(`Voting ${item.address}: isOnAllowlist=${isOnAllowlist}, creator=${item.creator}`);
+        return { ...item, isOnAllowlist };
+      }),
+    );
+
+    return { votings: { items: itemsWithAllowlistStatus } };
   };
 
   const {
@@ -71,38 +102,61 @@ const ListVotings = () => {
     isPending,
     isError,
   } = useQuery({
-    queryKey: ["votings", chain?.id],
+    queryKey: ["participated-votings", chain?.id, address],
     queryFn: fetchVotings,
-    refetchInterval: 5000, // Refetch every 5 seconds as fallback
+    refetchInterval: 5000,
+    enabled: !!address,
   });
 
   const votings: VotingItem[] = useMemo(() => {
+    if (!address || !votingsData) return [];
+
     const byAddress = new Map<string, VotingItem>();
+    const userAddress = getAddress(address);
 
     // Add items from GraphQL data (Ponder indexer)
-    if (votingsData) {
-      const items = (votingsData as NetworkVotingsData)?.votings?.items ?? [];
-      for (const evt of items.filter(Boolean)) {
-        const rawVotingAddr = evt.address as `0x${string}` | undefined;
-        if (!rawVotingAddr) continue;
-        const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;
-        const creatorAddr = evt.creator
-          ? (getAddress(evt.creator as `0x${string}`) as `0x${string}`)
-          : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
+    const items = (votingsData as NetworkVotingsData)?.votings?.items ?? [];
+    for (const evt of items.filter(Boolean)) {
+      const rawVotingAddr = evt.address as `0x${string}` | undefined;
+      if (!rawVotingAddr) continue;
 
+      const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;
+      const creatorAddr = evt.creator
+        ? (getAddress(evt.creator as `0x${string}`) as `0x${string}`)
+        : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
+
+      // Only include votings where the user is on the allowlist (including their own votings)
+      console.log(
+        `Processing voting ${votingAddr}: creator=${creatorAddr}, user=${userAddress}, isOnAllowlist=${evt.isOnAllowlist}`,
+      );
+      if (evt.isOnAllowlist) {
+        console.log(`Adding voting ${votingAddr} to results`);
         const item: VotingItem = {
           voting: votingAddr,
           creator: creatorAddr,
           question: evt.question || "",
           blockNumber: BigInt(evt.createdAtBlock),
           transactionHash: undefined,
+          isOnAllowlist: evt.isOnAllowlist,
         };
         byAddress.set(votingAddr, item);
+      } else {
+        console.log(`Skipping voting ${votingAddr}: isOnAllowlist=${evt.isOnAllowlist}`);
       }
     }
 
-    return Array.from(byAddress.values()).sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)));
-  }, [votingsData]);
+    const result = Array.from(byAddress.values()).sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)));
+    console.log(`Total votings processed: ${items.length}, Final result count: ${result.length}`);
+    return result;
+  }, [votingsData, address]);
+
+  if (!address) {
+    return (
+      <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">
+        Connect your wallet to see votings you can participate in.
+      </div>
+    );
+  }
 
   if (isError) {
     return (
@@ -115,12 +169,14 @@ const ListVotings = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">All votings</h2>
+        <h2 className="text-2xl font-semibold">Votings I Can Participate In</h2>
         {isPending && <span className="loading loading-spinner loading-sm" />}
       </div>
 
       {votings.length === 0 ? (
-        <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">No votings created yet.</div>
+        <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">
+          No votings available for participation yet.
+        </div>
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {votings.map(v => (
@@ -135,9 +191,12 @@ const ListVotings = () => {
                   <span className="mr-1">Voting:</span>
                   <Address address={v.voting} size="xs" />
                 </div>
+                <div className="text-sm">
+                  <span className="badge badge-success">On Allowlist</span>
+                </div>
                 <div className="pt-2">
                   <Link href={`/voting/${v.voting}`} className="btn btn-sm btn-primary">
-                    View
+                    View & Vote
                   </Link>
                 </div>
               </div>
@@ -149,4 +208,4 @@ const ListVotings = () => {
   );
 };
 
-export default ListVotings;
+export default ParticipatedVotings;

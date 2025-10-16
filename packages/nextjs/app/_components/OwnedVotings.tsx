@@ -17,7 +17,7 @@ type VotingItem = {
   transactionHash?: `0x${string}`;
 };
 
-const ListVotings = () => {
+const OwnedVotings = () => {
   type VotingEvent = {
     address: `0x${string}`;
     creator: `0x${string}`;
@@ -25,7 +25,7 @@ const ListVotings = () => {
     createdAtBlock: number;
   };
 
-  const { chain } = useAccount();
+  const { address, chain } = useAccount();
 
   type NetworkVotingsData = {
     votings: { items: VotingEvent[] };
@@ -71,25 +71,31 @@ const ListVotings = () => {
     isPending,
     isError,
   } = useQuery({
-    queryKey: ["votings", chain?.id],
+    queryKey: ["owned-votings", chain?.id, address],
     queryFn: fetchVotings,
-    refetchInterval: 5000, // Refetch every 5 seconds as fallback
+    refetchInterval: 5000,
+    enabled: !!address, // Only fetch if address is connected
   });
 
   const votings: VotingItem[] = useMemo(() => {
+    if (!address || !votingsData) return [];
+
     const byAddress = new Map<string, VotingItem>();
+    const userAddress = getAddress(address);
 
-    // Add items from GraphQL data (Ponder indexer)
-    if (votingsData) {
-      const items = (votingsData as NetworkVotingsData)?.votings?.items ?? [];
-      for (const evt of items.filter(Boolean)) {
-        const rawVotingAddr = evt.address as `0x${string}` | undefined;
-        if (!rawVotingAddr) continue;
-        const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;
-        const creatorAddr = evt.creator
-          ? (getAddress(evt.creator as `0x${string}`) as `0x${string}`)
-          : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
+    // Add items from GraphQL data (Ponder indexer) - only owned votings
+    const items = (votingsData as NetworkVotingsData)?.votings?.items ?? [];
+    for (const evt of items.filter(Boolean)) {
+      const rawVotingAddr = evt.address as `0x${string}` | undefined;
+      if (!rawVotingAddr) continue;
 
+      const votingAddr = getAddress(rawVotingAddr) as `0x${string}`;
+      const creatorAddr = evt.creator
+        ? (getAddress(evt.creator as `0x${string}`) as `0x${string}`)
+        : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
+
+      // Only include votings where the connected user is the creator/owner
+      if (creatorAddr.toLowerCase() === userAddress.toLowerCase()) {
         const item: VotingItem = {
           voting: votingAddr,
           creator: creatorAddr,
@@ -102,12 +108,20 @@ const ListVotings = () => {
     }
 
     return Array.from(byAddress.values()).sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)));
-  }, [votingsData]);
+  }, [votingsData, address]);
+
+  if (!address) {
+    return (
+      <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">
+        Connect your wallet to see your owned votings.
+      </div>
+    );
+  }
 
   if (isError) {
     return (
       <div className="alert alert-error">
-        <span>Failed to load votings.</span>
+        <span>Failed to load your votings.</span>
       </div>
     );
   }
@@ -115,12 +129,14 @@ const ListVotings = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">All votings</h2>
+        <h2 className="text-2xl font-semibold">My Votings</h2>
         {isPending && <span className="loading loading-spinner loading-sm" />}
       </div>
 
       {votings.length === 0 ? (
-        <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">No votings created yet.</div>
+        <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">
+          You haven&apos;t created any votings yet.
+        </div>
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {votings.map(v => (
@@ -149,4 +165,4 @@ const ListVotings = () => {
   );
 };
 
-export default ListVotings;
+export default OwnedVotings;
