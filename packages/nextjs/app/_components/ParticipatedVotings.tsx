@@ -42,6 +42,19 @@ const ParticipatedVotings = () => {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069"}/allowlist/${network}/${votingAddress}/${userAddress}`,
       );
+
+      // Check if response is OK and is JSON
+      if (!response.ok) {
+        console.warn(`Allowlist check failed with status ${response.status} for ${votingAddress}`);
+        return false;
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.warn(`Allowlist endpoint returned non-JSON response for ${votingAddress}`);
+        return false;
+      }
+
       const data = await response.json();
       console.log("data", data);
       return data.isOnAllowlist || false;
