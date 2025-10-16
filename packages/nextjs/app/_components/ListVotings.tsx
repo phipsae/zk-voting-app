@@ -66,11 +66,7 @@ const ListVotings = () => {
     return data;
   };
 
-  const {
-    data: votingsData,
-    isPending,
-    isError,
-  } = useQuery({
+  const { data: votingsData, isError } = useQuery({
     queryKey: ["votings", chain?.id],
     queryFn: fetchVotings,
     refetchInterval: 5000, // Refetch every 5 seconds as fallback
@@ -106,45 +102,48 @@ const ListVotings = () => {
 
   if (isError) {
     return (
-      <div className="alert alert-error">
-        <span>Failed to load votings.</span>
+      <div className="w-full">
+        <ul className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
+          <li className="col-span-1 md:col-span-3 alert alert-error">
+            <span>Failed to load votings.</span>
+          </li>
+        </ul>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">All votings</h2>
-        {isPending && <span className="loading loading-spinner loading-sm" />}
-      </div>
-
-      {votings.length === 0 ? (
-        <div className="bg-base-100 rounded-xl p-6 text-center opacity-70">No votings created yet.</div>
-      ) : (
-        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {votings.map(v => (
-            <li key={v.voting} className="bg-base-100 rounded-xl p-5 border border-base-300">
-              <div className="space-y-3">
-                <div className="text-lg font-medium break-words">{v.question || "(no question)"}</div>
-                <div className="text-sm opacity-70">
+    <div className="w-full">
+      <ul className="w-full grid grid-cols-1 md:grid-cols-3 gap-4">
+        {votings.length === 0 ? (
+          <li className="col-span-1 md:col-span-3 bg-base-100 rounded-xl p-6 text-center opacity-70">
+            No votings created yet.
+          </li>
+        ) : (
+          votings.map(v => (
+            <li key={v.voting} className="bg-base-100 rounded-xl p-5 border border-base-300 flex flex-col h-full">
+              <div className="flex-grow space-y-3">
+                <div className="text-lg font-medium break-words line-clamp-2 min-h-[3.5rem]">
+                  {v.question || "(no question)"}
+                </div>
+                <div className="text-sm opacity-70 min-h-[1.75rem] flex items-start">
                   <span className="mr-1">Creator:</span>
                   <Address address={v.creator} size="xs" />
                 </div>
-                <div className="text-sm opacity-70">
+                <div className="text-sm opacity-70 min-h-[1.75rem] flex items-start">
                   <span className="mr-1">Voting:</span>
                   <Address address={v.voting} size="xs" />
                 </div>
-                <div className="pt-2">
-                  <Link href={`/voting/${v.voting}`} className="btn btn-sm btn-primary">
-                    View
-                  </Link>
-                </div>
+              </div>
+              <div className="pt-4">
+                <Link href={`/voting/${v.voting}`} className="btn btn-sm btn-primary">
+                  View
+                </Link>
               </div>
             </li>
-          ))}
-        </ul>
-      )}
+          ))
+        )}
+      </ul>
     </div>
   );
 };

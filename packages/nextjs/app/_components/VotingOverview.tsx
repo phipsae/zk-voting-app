@@ -9,30 +9,29 @@ const VotingOverview = () => {
   const [activeTab, setActiveTab] = useState<"all" | "owned" | "participated">("all");
 
   const tabs = [
-    { id: "all" as const, label: "All Votings", component: ListVotings },
     { id: "owned" as const, label: "My Votings", component: OwnedVotings },
     { id: "participated" as const, label: "I Can Vote", component: ParticipatedVotings },
+    { id: "all" as const, label: "All Votings", component: ListVotings },
   ];
 
   const ActiveComponent = tabs.find(tab => tab.id === activeTab)?.component || ListVotings;
 
   return (
-    <div className="space-y-6">
-      {/* Tab Navigation */}
+    <div className="w-full space-y-6">
       <div className="tabs tabs-boxed w-fit">
         {tabs.map(tab => (
           <button
             key={tab.id}
-            className={`tab ${activeTab === tab.id ? "tab-active" : ""}`}
+            className={`tab text-xl font-medium ${activeTab === tab.id ? "tab-active" : ""}`}
             onClick={() => setActiveTab(tab.id)}
+            style={{ fontSize: "2rem" }}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Active Tab Content */}
-      <div>
+      <div className="w-full">
         <ActiveComponent />
       </div>
     </div>
