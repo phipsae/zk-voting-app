@@ -39,9 +39,9 @@ const ParticipatedVotings = () => {
     const network = chain?.id === base.id ? "base" : "mainnet";
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069"}/allowlist/${network}/${votingAddress}/${userAddress}`,
-      );
+      // Remove trailing slash from base URL to avoid double slashes
+      const baseUrl = (process.env.NEXT_PUBLIC_PONDER_URL || "http://localhost:42069").replace(/\/$/, "");
+      const response = await fetch(`${baseUrl}/allowlist/${network}/${votingAddress}/${userAddress}`);
 
       // Check if response is OK and is JSON
       if (!response.ok) {
