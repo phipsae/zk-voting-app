@@ -56,7 +56,6 @@ const ParticipatedVotings = () => {
       }
 
       const data = await response.json();
-      console.log("data", data);
       return data.isOnAllowlist || false;
     } catch (error) {
       console.error("Failed to check allowlist status:", error);
@@ -103,7 +102,6 @@ const ParticipatedVotings = () => {
     const itemsWithAllowlistStatus = await Promise.all(
       data.votings.items.map(async item => {
         const isOnAllowlist = await checkAllowlistStatus(item.address, address);
-        console.log(`Voting ${item.address}: isOnAllowlist=${isOnAllowlist}, creator=${item.creator}`);
         return { ...item, isOnAllowlist };
       }),
     );
@@ -122,7 +120,6 @@ const ParticipatedVotings = () => {
     if (!address || !votingsData) return [];
 
     const byAddress = new Map<string, VotingItem>();
-    const userAddress = getAddress(address);
 
     // Add items from GraphQL data (Ponder indexer)
     const items = (votingsData as NetworkVotingsData)?.votings?.items ?? [];
@@ -136,11 +133,7 @@ const ParticipatedVotings = () => {
         : ("0x0000000000000000000000000000000000000000" as `0x${string}`);
 
       // Only include votings where the user is on the allowlist (including their own votings)
-      console.log(
-        `Processing voting ${votingAddr}: creator=${creatorAddr}, user=${userAddress}, isOnAllowlist=${evt.isOnAllowlist}`,
-      );
       if (evt.isOnAllowlist) {
-        console.log(`Adding voting ${votingAddr} to results`);
         const item: VotingItem = {
           voting: votingAddr,
           creator: creatorAddr,
@@ -151,12 +144,10 @@ const ParticipatedVotings = () => {
         };
         byAddress.set(votingAddr, item);
       } else {
-        console.log(`Skipping voting ${votingAddr}: isOnAllowlist=${evt.isOnAllowlist}`);
       }
     }
 
     const result = Array.from(byAddress.values()).sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)));
-    console.log(`Total votings processed: ${items.length}, Final result count: ${result.length}`);
     return result;
   }, [votingsData, address]);
 
