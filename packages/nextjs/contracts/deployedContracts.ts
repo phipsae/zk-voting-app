@@ -840,117 +840,8 @@ const deployedContracts = {
     },
   },
   8453: {
-    HonkVerifier: {
-      address: "0xE7F9d8283681dC05415ED81a01fbA8879AD4A256",
-      abi: [
-        {
-          inputs: [],
-          name: "ProofLengthWrong",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "PublicInputsLengthWrong",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "ShpleminiFailed",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "SumcheckFailed",
-          type: "error",
-        },
-        {
-          inputs: [
-            {
-              internalType: "bytes",
-              name: "proof",
-              type: "bytes",
-            },
-            {
-              internalType: "bytes32[]",
-              name: "publicInputs",
-              type: "bytes32[]",
-            },
-          ],
-          name: "verify",
-          outputs: [
-            {
-              internalType: "bool",
-              name: "",
-              type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-      ],
-      inheritedFunctions: {},
-      deployedOnBlock: 35136731,
-    },
-    LeanIMT: {
-      address: "0x8914Ef87823d7B1cBbB2FB6c0E81ec232f258224",
-      abi: [
-        {
-          inputs: [],
-          name: "LeafAlreadyExists",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "LeafCannotBeZero",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "LeafDoesNotExist",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "LeafGreaterThanSnarkScalarField",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "WrongSiblingNodes",
-          type: "error",
-        },
-      ],
-      inheritedFunctions: {},
-      deployedOnBlock: 35136831,
-    },
-    PoseidonT3: {
-      address: "0xB288971E6CD60516DBCEF413165B2A7944e04fC3",
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: "uint256[2]",
-              name: "",
-              type: "uint256[2]",
-            },
-          ],
-          name: "hash",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "pure",
-          type: "function",
-        },
-      ],
-      inheritedFunctions: {},
-      deployedOnBlock: 35136788,
-    },
     Voting: {
-      address: "0x3d44F353151942AcE0026aC0D9cE709Acfd113fc",
+      address: "0x4D027367382D0f29Dfe8855AB766Fe5c595a2feB",
       abi: [
         {
           inputs: [
@@ -1552,10 +1443,10 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 35136876,
+      deployedOnBlock: 36919957,
     },
     VotingFactory: {
-      address: "0xa795585dC21A768bf4b3B7e37a4b698A704f5ec8",
+      address: "0x69eD9786967830b97Fd4e7CA1DD5C2a8460C8C11",
       abi: [
         {
           inputs: [
@@ -1670,7 +1561,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 35136875,
+      deployedOnBlock: 36919954,
     },
   },
   84532: {
