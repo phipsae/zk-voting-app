@@ -7,8 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { getAddress } from "viem";
 import { base } from "viem/chains";
-import { useAccount } from "wagmi";
 import { Address } from "~~/components/scaffold-eth";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 
 type VotingItem = {
   voting: `0x${string}`;
@@ -26,14 +26,14 @@ const ListVotings = () => {
     createdAtBlock: number;
   };
 
-  const { chain } = useAccount();
+  const { targetNetwork } = useTargetNetwork();
 
   type NetworkVotingsData = {
     votings: { items: VotingEvent[] };
   };
 
   const fetchVotings = async () => {
-    const isBase = chain?.id === base.id;
+    const isBase = targetNetwork.id === base.id;
     const VotingsQuery = isBase
       ? gql`
           query BaseVotings {
@@ -68,7 +68,7 @@ const ListVotings = () => {
   };
 
   const { data: votingsData, isError } = useQuery({
-    queryKey: ["votings", chain?.id],
+    queryKey: ["votings", targetNetwork.id],
     queryFn: fetchVotings,
     refetchInterval: 5000, // Refetch every 5 seconds as fallback
   });
